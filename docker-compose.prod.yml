@@ -1,0 +1,164 @@
+# =============================================================================
+# Docker Compose - Production Environment
+# =============================================================================
+# Production-ready environment for Workflow Builder with:
+# - Optimized Next.js application with Platformatic Watt
+# - PostgreSQL database (or connect to external database)
+# - Valkey (Redis-compatible) for distributed caching
+# - Prometheus metrics endpoint
+# - Health checks and restart policies
+# =============================================================================
+# Usage:
+#   Build:  docker-compose -f docker-compose.prod.yml build
+#   Start:  docker-compose -f docker-compose.prod.yml up -d
+#   Stop:   docker-compose -f docker-compose.prod.yml down
+#   Logs:   docker-compose -f docker-compose.prod.yml logs -f app
+#   Scale:  docker-compose -f docker-compose.prod.yml up -d --scale app=3
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Next.js Application with Platformatic Watt (Production)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workflow-builder-prod
+    ports:
+      # Application port
+      - "3000:3000"
+      # Metrics port (Prometheus)
+      - "9090:9090"
+    environment:
+      # Database connection (uses Docker service name or external DB)
+      - DATABASE_URL=${DATABASE_URL:-postgresql://workflow:workflow@postgres:5432/workflow_builder}
+      # Better Auth configuration
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      # Platformatic Watt configuration
+      - PORT=3000
+      - PLT_NEXT_WORKERS=${PLT_NEXT_WORKERS:-2}
+      - PLT_VALKEY_HOST=${PLT_VALKEY_HOST:-valkey:6379}
+      - PLT_SERVER_LOGGER_LEVEL=info
+      # Integration encryption key
+      - INTEGRATION_ENCRYPTION_KEY=${INTEGRATION_ENCRYPTION_KEY}
+      # Optional: AI Gateway
+      - AI_GATEWAY_API_KEY=${AI_GATEWAY_API_KEY:-}
+      # Optional: OAuth providers
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - VERCEL_CLIENT_ID=${VERCEL_CLIENT_ID:-}
+      - VERCEL_CLIENT_SECRET=${VERCEL_CLIENT_SECRET:-}
+      # Optional: Integration API keys
+      - LINEAR_API_KEY=${LINEAR_API_KEY:-}
+      - LINEAR_TEAM_ID=${LINEAR_TEAM_ID:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}
+      - SLACK_API_KEY=${SLACK_API_KEY:-}
+      # Node environment
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    networks:
+      - workflow-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    labels:
+      # Prometheus discovery label
+      - "platformatic.dev/monitor=prometheus"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database (Production)
+  # ---------------------------------------------------------------------------
+  # For production, consider using a managed database service instead
+  # (e.g., Neon, Supabase, AWS RDS, Google Cloud SQL)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: workflow-postgres-prod
+    ports:
+      # Only expose internally or remove this for production security
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-workflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-workflow}
+      - POSTGRES_DB=${POSTGRES_DB:-workflow_builder}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-workflow} -d ${POSTGRES_DB:-workflow_builder}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - workflow-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Valkey (Redis-compatible) for Distributed Caching (Production)
+  # ---------------------------------------------------------------------------
+  valkey:
+    image: valkey/valkey:latest
+    container_name: workflow-valkey-prod
+    ports:
+      # Only expose internally or remove this for production security
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - workflow-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  workflow-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  valkey_data:
+    driver: local
+
+

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: workflow-builder
+description: A Helm chart for Workflow Builder with Platformatic Watt integration
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: postgresql
+    version: 16.4.16
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: redis
+    version: 20.6.1
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled

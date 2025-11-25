@@ -14,7 +14,20 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "docker:dev": "docker-compose up",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --remove-orphans",
+    "watt:import": "npx wattpm-utils import",
+    "watt:dev": "wattpm dev",
+    "watt:build": "wattpm build",
+    "watt:start": "wattpm start",
+    "helm:template": "helm template k8s/charts/workflow-builder",
+    "helm:install": "helm install workflow-builder k8s/charts/workflow-builder",
+    "helm:upgrade": "helm upgrade workflow-builder k8s/charts/workflow-builder",
+    "helm:uninstall": "helm uninstall workflow-builder"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",

@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js build output
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# IDE and editors
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Environment files (use docker-compose env instead)
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Misc
+*.md
+!README.md
+LICENSE
+screenshot.png
+example-workflow.json
+
+# Drizzle migrations (included in build context, but not needed for runtime)
+# drizzle/
+
+# Docker files (avoid recursive copies)
+Dockerfile*
+docker-compose*.yml
+
+# Kubernetes manifests
+k8s/
+
+# Plan files
+*.plan.md
+

@@ -16,6 +16,80 @@ You can deploy your own version of the workflow builder to Vercel with one click
 - **Environment Configuration**: You'll be prompted to provide required environment variables (Better Auth credentials and AI Gateway API key)
 - **Ready to Use**: After deployment, you can start building workflows immediately
 
+## Docker Setup
+
+This project includes a comprehensive Docker setup for both development and production environments, integrated with Platformatic Watt for enhanced performance.
+
+### Features
+
+- **Separate Configurations**: Optimized setups for development (hot reload) and production.
+- **Platformatic Watt**: Multithreaded SSR, distributed caching (Valkey/Redis), and metrics.
+- **Automatic Migrations**: Database migrations run automatically on container startup.
+- **Integrated Services**: Includes PostgreSQL and Valkey (Redis-compatible) services.
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- pnpm installed (optional, for local scripts)
+
+### Development Environment
+
+Start the development environment with hot reload:
+
+```bash
+# Using pnpm script
+pnpm docker:dev
+
+# Or using docker-compose directly
+docker-compose up
+```
+
+This will start:
+
+- Next.js app at http://localhost:3000 (with metrics at port 9090)
+- PostgreSQL database (port 5432)
+- Valkey cache (port 6379)
+
+### Production Environment
+
+Start the production environment:
+
+```bash
+# Using pnpm script
+pnpm docker:prod
+
+# Or using docker-compose directly
+docker-compose -f docker-compose.prod.yml up
+```
+
+### Kubernetes Deployment (Helm)
+
+The project includes a Helm chart for deploying to Kubernetes.
+
+1. **Package the chart**:
+
+   ```bash
+   helm package k8s/charts/workflow-builder
+   ```
+
+2. **Install the chart**:
+   ```bash
+   helm install workflow-builder k8s/charts/workflow-builder
+   ```
+
+See `k8s/charts/workflow-builder/README.md` (if available) or `values.yaml` for configuration options.
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and configure your environment variables.
+
+Key variables for Docker/Platformatic:
+
+- `PORT`: Application port (default: 3000)
+- `PLT_NEXT_WORKERS`: Number of worker threads (default: 1)
+- `PLT_VALKEY_HOST`: Connection string for Valkey/Redis
+- `DATABASE_URL`: Connection string for PostgreSQL
+
 ## What's Included
 
 - **Visual Workflow Builder** - Drag-and-drop interface powered by React Flow
@@ -28,7 +102,7 @@ You can deploy your own version of the workflow builder to Vercel with one click
 - **Database** - PostgreSQL with Drizzle ORM for type-safe database access
 - **Modern UI** - Beautiful shadcn/ui components with dark mode support
 
-## Getting Started
+## Getting Started (Local without Docker)
 
 ### Prerequisites
 
