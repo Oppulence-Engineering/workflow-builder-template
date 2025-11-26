@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.0.0...v1.0.1) (2025-11-26)
+
+
+### Bug Fixes
+
+* **release:** disable successComment and failComment in semantic-release github plugin ([a4ce8cf](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/a4ce8cfca170bafb67288eac4cb034338911b0d4))
+
 # 1.0.0 (2025-11-26)
 
 
