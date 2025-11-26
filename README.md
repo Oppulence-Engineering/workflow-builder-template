@@ -1,8 +1,8 @@
-# Workflow Builder Template
+# AI Workflow Builder Template
 
-A template for building your own workflow automation platform. Built on top of Workflow DevKit, this template provides a complete visual workflow builder with real integrations and code generation capabilities.
+A template for building your own AI-driven workflow automation platform. Built on top of Workflow DevKit, this template provides a complete visual workflow builder with real integrations and code generation capabilities.
 
-![Workflow Builder Screenshot](screenshot.png)
+![AI Workflow Builder Screenshot](screenshot.png)
 
 ## Deploy Your Own
 
@@ -333,7 +333,7 @@ This template is built on top of Workflow DevKit, a powerful workflow execution 
 - Built-in logging and error handling
 - Serverless deployment support
 
-Learn more about Workflow DevKit at [workflow.dev](https://workflow.dev)
+Learn more about Workflow DevKit at [workflow.dev](https://useworkflow.dev)
 
 ## License
 
