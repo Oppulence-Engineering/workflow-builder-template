@@ -186,7 +186,7 @@ export function AIPrompt({ workflowId, onWorkflowCreated }: AIPromptProps) {
             JSON.stringify(workflowData, null, 2)
           );
           throw new Error(
-            `Cannot create workflow: The AI tried to create ${incompleteNodes.length} incomplete node(s). The requested action type may not be supported. Please try a different description using supported actions: Send Email, Send Slack Message, Create Ticket, Database Query, HTTP Request, Generate Text, or Generate Image.`
+            `Cannot create workflow: The AI tried to create ${incompleteNodes.length} incomplete node(s). The requested action type may not be supported. Please try a different description using supported actions: Send Email, Send Slack Message, Create Ticket, Database Query, HTTP Request, Generate Text, Generate Image, Scrape, or Search.`
           );
         }
 
@@ -279,7 +279,7 @@ export function AIPrompt({ workflowId, onWorkflowCreated }: AIPromptProps) {
       {/* Always visible prompt input */}
       <div 
         ref={containerRef}
-        className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 px-4"
+        className="pointer-events-auto absolute bottom-4 left-1/2 z-10 -translate-x-1/2 px-4"
         style={{
           width: isExpanded ? "min(100%, 42rem)" : "20rem",
           transition: "width 150ms ease-out",

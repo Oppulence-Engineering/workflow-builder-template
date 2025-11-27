@@ -321,6 +321,14 @@ export function getStepInfo(actionType: string): {
         functionName: "httpRequestStep",
         importPath: "./steps/http-request-step",
       },
+      Scrape: {
+        functionName: "firecrawlScrapeStep",
+        importPath: "./steps/firecrawl",
+      },
+      Search: {
+        functionName: "firecrawlSearchStep",
+        importPath: "./steps/firecrawl",
+      },
     };
 
   return (

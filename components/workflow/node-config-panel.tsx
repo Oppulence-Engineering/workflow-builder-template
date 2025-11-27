@@ -2,6 +2,8 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   Copy,
   Eraser,
+  Eye,
+  EyeOff,
   FileCode,
   MenuIcon,
   RefreshCw,
@@ -49,7 +51,7 @@ import { IntegrationSelector } from "../ui/integration-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ActionConfig } from "./config/action-config";
 import { ActionGrid } from "./config/action-grid";
-import { ConditionConfig } from "./config/condition-config";
+
 import { TriggerConfig } from "./config/trigger-config";
 import { generateNodeCode } from "./utils/code-generators";
 import { WorkflowRuns } from "./workflow-runs";
@@ -200,6 +202,16 @@ export const PanelInner = () => {
     if (selectedNodeId) {
       deleteNode(selectedNodeId);
       setShowDeleteNodeAlert(false);
+    }
+  };
+
+  const handleToggleEnabled = () => {
+    if (selectedNode) {
+      const currentEnabled = selectedNode.data.enabled ?? true;
+      updateNodeData({
+        id: selectedNode.id,
+        data: { enabled: !currentEnabled },
+      });
     }
   };
 
@@ -574,17 +586,7 @@ export const PanelInner = () => {
             ) : null}
 
             {selectedNode.data.type === "action" &&
-            selectedNode.data.config?.actionType === "Condition" ? (
-              <ConditionConfig
-                config={selectedNode.data.config || {}}
-                disabled={isGenerating}
-                onUpdateConfig={handleUpdateConfig}
-              />
-            ) : null}
-
-            {selectedNode.data.type === "action" &&
-            selectedNode.data.config?.actionType &&
-            selectedNode.data.config?.actionType !== "Condition" ? (
+            selectedNode.data.config?.actionType ? (
               <ActionConfig
                 config={selectedNode.data.config || {}}
                 disabled={isGenerating}
@@ -624,14 +626,31 @@ export const PanelInner = () => {
           </div>
           {selectedNode.data.type === "action" && (
             <div className="flex shrink-0 items-center justify-between border-t p-4">
-              <Button
-                onClick={() => setShowDeleteNodeAlert(true)}
-                size="sm"
-                variant="ghost"
-              >
-                <Trash2 className="mr-2 size-4" />
-                Delete Step
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleToggleEnabled}
+                  size="icon"
+                  title={
+                    selectedNode.data.enabled === false
+                      ? "Enable Step"
+                      : "Disable Step"
+                  }
+                  variant="ghost"
+                >
+                  {selectedNode.data.enabled === false ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setShowDeleteNodeAlert(true)}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
 
               {(() => {
                 const actionType = selectedNode.data.config
@@ -644,6 +663,8 @@ export const PanelInner = () => {
                   "Generate Text": "ai-gateway",
                   "Generate Image": "ai-gateway",
                   "Database Query": "database",
+                  Scrape: "firecrawl",
+                  Search: "firecrawl",
                 } as const;
 
                 const integrationType =

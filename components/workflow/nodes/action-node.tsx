@@ -7,6 +7,7 @@ import {
   Check,
   Code,
   Database,
+  EyeOff,
   GitBranch,
   XCircle,
   Zap,
@@ -42,6 +43,18 @@ const getModelDisplayName = (modelId: string): string => {
     "claude-3-opus": "Claude 3 Opus",
     "anthropic/claude-opus-4.5": "Claude Opus 4.5",
     "anthropic/claude-sonnet-4.5": "Claude Sonnet 4.5",
+    "anthropic/claude-haiku-4.5": "Claude Haiku 4.5",
+    "google/gemini-3-pro-preview": "Gemini 3 Pro Preview",
+    "google/gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+    "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+    "google/gemini-2.5-pro": "Gemini 2.5 Pro",
+    "meta/llama-4-scout": "Llama 4 Scout",
+    "meta/llama-3.3-70b": "Llama 3.3 70B",
+    "meta/llama-3.1-8b": "Llama 3.1 8B",
+    "moonshotai/kimi-k2-0905": "Kimi K2",
+    "openai/gpt-oss-120b": "GPT OSS 120B",
+    "openai/gpt-oss-safeguard-20b": "GPT OSS Safeguard 20B",
+    "openai/gpt-oss-20b": "GPT OSS 20B",
     "o1-preview": "o1 Preview",
     "o1-mini": "o1 Mini",
     "bfl/flux-2-pro": "FLUX.2 Pro",
@@ -63,6 +76,8 @@ const getIntegrationFromActionType = (actionType: string): string => {
     "Database Query": "Database",
     "Generate Text": "AI Gateway",
     "Generate Image": "AI Gateway",
+    Scrape: "Firecrawl",
+    Search: "Firecrawl",
     Condition: "Condition",
   };
   return integrationMap[actionType] || "System";
@@ -89,6 +104,8 @@ const requiresIntegration = (actionType: string): boolean => {
     "Generate Text",
     "Generate Image",
     "Database Query",
+    "Scrape",
+    "Search",
   ];
   return requiresIntegrationActions.includes(actionType);
 };
@@ -115,6 +132,9 @@ const getProviderLogo = (actionType: string) => {
     case "Generate Text":
     case "Generate Image":
       return <IntegrationIcon className="size-12" integration="vercel" />;
+    case "Scrape":
+    case "Search":
+      return <IntegrationIcon className="size-12" integration="firecrawl" />;
     case "Execute Code":
       return <Code className="size-12 text-green-300" strokeWidth={1.5} />;
     case "Condition":
@@ -214,6 +234,7 @@ type ActionNodeProps = NodeProps & {
   id: string;
 };
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex UI logic with multiple conditions including disabled state
 export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   const selectedExecutionId = useAtomValue(selectedExecutionIdAtom);
   const executionLogs = useAtomValue(executionLogsAtom);
@@ -235,15 +256,22 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   // Handle empty action type (new node without selected action)
   if (!actionType) {
+    const isDisabled = data.enabled === false;
     return (
       <Node
         className={cn(
           "flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
-          selected && "border-primary"
+          selected && "border-primary",
+          isDisabled && "opacity-50"
         )}
         handles={{ target: true, source: true }}
         status={status}
       >
+        {isDisabled && (
+          <div className="absolute top-2 left-2 rounded-full bg-gray-500/50 p-1">
+            <EyeOff className="size-3.5 text-white" />
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center gap-3 p-6">
           <Zap className="size-12 text-muted-foreground" strokeWidth={1.5} />
           <div className="flex flex-col items-center gap-1 text-center">
@@ -270,27 +298,38 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   // Get model for AI nodes
   const getAiModel = (): string | null => {
     if (actionType === "Generate Text") {
-      return (data.config?.aiModel as string) || "gpt-5";
+      return (data.config?.aiModel as string) || "meta/llama-4-scout";
     }
     if (actionType === "Generate Image") {
-      return (data.config?.imageModel as string) || "bfl/flux-2-pro";
+      return (
+        (data.config?.imageModel as string) || "google/imagen-4.0-generate"
+      );
     }
     return null;
   };
 
   const aiModel = getAiModel();
+  const isDisabled = data.enabled === false;
 
   return (
     <Node
       className={cn(
         "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
-        selected && "border-primary"
+        selected && "border-primary",
+        isDisabled && "opacity-50"
       )}
       handles={{ target: true, source: true }}
       status={status}
     >
-      {/* Integration warning badge in top left */}
-      {integrationMissing && (
+      {/* Disabled badge in top left */}
+      {isDisabled && (
+        <div className="absolute top-2 left-2 rounded-full bg-gray-500/50 p-1">
+          <EyeOff className="size-3.5 text-white" />
+        </div>
+      )}
+
+      {/* Integration warning badge in top left (only if not disabled) */}
+      {!isDisabled && integrationMissing && (
         <div className="absolute top-2 left-2 rounded-full bg-orange-500/50 p-1">
           <AlertTriangle className="size-3.5 text-white" />
         </div>

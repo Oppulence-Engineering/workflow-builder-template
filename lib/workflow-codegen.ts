@@ -408,7 +408,7 @@ export function generateWorkflowCode(
 
     const config = node.data.config || {};
     const aiPrompt = (config.aiPrompt as string) || "Generate a summary";
-    const aiModel = (config.aiModel as string) || "gpt-5";
+    const aiModel = (config.aiModel as string) || "meta/llama-4-scout";
     const aiFormat = (config.aiFormat as string) || "text";
     const aiSchema = config.aiSchema as string | undefined;
 
@@ -444,7 +444,7 @@ export function generateWorkflowCode(
     const imagePrompt =
       (node.data.config?.imagePrompt as string) || "A beautiful landscape";
     const imageModel =
-      (node.data.config?.imageModel as string) || "bfl/flux-2-pro";
+      (node.data.config?.imageModel as string) || "google/imagen-4.0-generate";
 
     return [
       `${indent}// Generate image using AI`,
@@ -496,6 +496,49 @@ export function generateWorkflowCode(
       `${indent}  status: "in_progress",`,
       `${indent}});`,
     ];
+  }
+
+  function formatTemplateValue(value: string): string {
+    const converted = convertTemplateToJS(value);
+    const hasTemplateRefs = converted.includes("${");
+    const escaped = converted.replace(/\$\{/g, "$${").replace(/`/g, "\\`");
+    return hasTemplateRefs
+      ? `\`${escaped}\``
+      : `\`${value.replace(/`/g, "\\`")}\``;
+  }
+
+  function generateFirecrawlActionCode(
+    node: WorkflowNode,
+    indent: string,
+    varName: string
+  ): string[] {
+    const actionType = node.data.config?.actionType as string;
+    const stepInfo = getStepInfo(actionType);
+    imports.add(
+      `import { ${stepInfo.functionName} } from '${stepInfo.importPath}';`
+    );
+
+    const config = node.data.config || {};
+    const url = (config.url as string) || "";
+    const query = (config.query as string) || "";
+    const limit = config.limit ? Number(config.limit) : undefined;
+
+    const lines = [
+      `${indent}const ${varName} = await ${stepInfo.functionName}({`,
+    ];
+
+    if (url) {
+      lines.push(`${indent}  url: ${formatTemplateValue(url)},`);
+    }
+    if (query) {
+      lines.push(`${indent}  query: ${formatTemplateValue(query)},`);
+    }
+    if (limit) {
+      lines.push(`${indent}  limit: ${limit},`);
+    }
+
+    lines.push(`${indent}});`);
+    return lines;
   }
 
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Action type routing requires many conditionals
@@ -590,6 +633,10 @@ export function generateWorkflowCode(
     } else if (actionType === "Find Issues") {
       lines.push(
         ...wrapActionCall(generateFindIssuesActionCode(indent, varName))
+      );
+    } else if (actionType === "Scrape" || actionType === "Search") {
+      lines.push(
+        ...wrapActionCall(generateFirecrawlActionCode(node, indent, varName))
       );
     } else if (actionType === "Database Query") {
       lines.push(

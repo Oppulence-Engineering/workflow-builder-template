@@ -686,6 +686,8 @@ function ToolbarActions({
     };
 
     state.addNode(newNode);
+    state.setSelectedNodeId(newNode.id);
+    state.setActiveTab("properties");
   };
 
   return (
@@ -1175,25 +1177,24 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
         />
       </Panel>
 
-      <Panel
-        className="flex flex-col-reverse items-end gap-2 border-none bg-transparent p-0 lg:flex-row lg:items-center"
-        position="top-right"
-      >
-        <ToolbarActions
-          actions={actions}
-          state={state}
-          workflowId={workflowId}
-        />
-        <div className="flex items-center gap-2">
-          {!workflowId && (
-            <>
-              <GitHubStarsButton />
-              <DeployButton />
-            </>
-          )}
-          <UserMenu />
+      <div className="pointer-events-auto absolute top-4 right-4 z-10">
+        <div className="flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center">
+          <ToolbarActions
+            actions={actions}
+            state={state}
+            workflowId={workflowId}
+          />
+          <div className="flex items-center gap-2">
+            {!workflowId && (
+              <>
+                <GitHubStarsButton />
+                <DeployButton />
+              </>
+            )}
+            <UserMenu />
+          </div>
         </div>
-      </Panel>
+      </div>
 
       <WorkflowDialogsComponent actions={actions} state={state} />
     </>

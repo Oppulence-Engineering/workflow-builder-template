@@ -37,6 +37,7 @@ async function executeActionStep(input: {
 
   // Helper to replace template variables in conditions
   // biome-ignore lint/nursery/useMaxParams: Helper function needs all parameters for template replacement
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template variable replacement requires nested logic for field access
   function replaceTemplateVariable(
     match: string,
     nodeId: string,
@@ -57,6 +58,9 @@ async function executeActionStep(input: {
 
     if (dotIndex === -1) {
       value = output.data;
+    } else if (output.data === null || output.data === undefined) {
+      // If data is null/undefined (e.g., from disabled node), assign undefined
+      value = undefined;
     } else {
       const fieldPath = rest.substring(dotIndex + 1);
       const fields = fieldPath.split(".");
@@ -68,10 +72,13 @@ async function executeActionStep(input: {
           current = current[field];
         } else {
           console.log("[Condition] Field access failed:", fieldPath);
-          return match;
+          value = undefined;
+          break;
         }
       }
-      value = current;
+      if (value === undefined && current !== undefined) {
+        value = current;
+      }
     }
 
     const varName = `__v${varCounter.value}`;
@@ -90,27 +97,37 @@ async function executeActionStep(input: {
   // Import and execute the appropriate step function
   // Step functions load credentials from process.env themselves
   if (actionType === "Send Email") {
-    const { sendEmailStep } = await import("./steps/send-email");
+    const { sendEmailStep } = await import(
+      "../plugins/resend/steps/send-email/step"
+    );
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
     return await sendEmailStep(stepInput as any);
   }
   if (actionType === "Send Slack Message") {
-    const { sendSlackMessageStep } = await import("./steps/send-slack-message");
+    const { sendSlackMessageStep } = await import(
+      "../plugins/slack/steps/send-slack-message/step"
+    );
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
     return await sendSlackMessageStep(stepInput as any);
   }
   if (actionType === "Create Ticket") {
-    const { createTicketStep } = await import("./steps/create-ticket");
+    const { createTicketStep } = await import(
+      "../plugins/linear/steps/create-ticket/step"
+    );
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
     return await createTicketStep(stepInput as any);
   }
   if (actionType === "Generate Text") {
-    const { generateTextStep } = await import("./steps/generate-text");
+    const { generateTextStep } = await import(
+      "../plugins/ai-gateway/steps/generate-text/step"
+    );
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
     return await generateTextStep(stepInput as any);
   }
   if (actionType === "Generate Image") {
-    const { generateImageStep } = await import("./steps/generate-image");
+    const { generateImageStep } = await import(
+      "../plugins/ai-gateway/steps/generate-image/step"
+    );
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
     return await generateImageStep(stepInput as any);
   }
@@ -180,6 +197,21 @@ async function executeActionStep(input: {
     return await conditionStep({ condition: evaluatedCondition } as any);
   }
 
+  if (actionType === "Scrape") {
+    const { firecrawlScrapeStep } = await import(
+      "../plugins/firecrawl/steps/scrape/step"
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
+    return await firecrawlScrapeStep(stepInput as any);
+  }
+  if (actionType === "Search") {
+    const { firecrawlSearchStep } = await import(
+      "../plugins/firecrawl/steps/search/step"
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic step input type
+    return await firecrawlSearchStep(stepInput as any);
+  }
+
   // Fallback for unknown action types
   return {
     success: false,
@@ -216,12 +248,18 @@ function processTemplates(
             // No field path, return the entire output data
             const data = output.data;
             if (data === null || data === undefined) {
-              return match;
+              // Return empty string for null/undefined data (e.g., from disabled nodes)
+              return "";
             }
             if (typeof data === "object") {
               return JSON.stringify(data);
             }
             return String(data);
+          }
+
+          // If data is null/undefined, return empty string instead of trying to access fields
+          if (output.data === null || output.data === undefined) {
+            return "";
           }
 
           const fieldPath = rest.substring(dotIndex + 1);
@@ -233,13 +271,14 @@ function processTemplates(
             if (current && typeof current === "object") {
               current = current[field];
             } else {
-              return match;
+              // Field access failed, return empty string
+              return "";
             }
           }
 
           // Convert value to string, using JSON.stringify for objects/arrays
           if (current === null || current === undefined) {
-            return match;
+            return "";
           }
           if (typeof current === "object") {
             return JSON.stringify(current);
@@ -385,6 +424,24 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     const node = nodeMap.get(nodeId);
     if (!node) {
       console.log("[Workflow Executor] Node not found:", nodeId);
+      return;
+    }
+
+    // Skip disabled nodes
+    if (node.data.enabled === false) {
+      console.log("[Workflow Executor] Skipping disabled node:", nodeId);
+
+      // Store null output for disabled nodes so downstream templates don't fail
+      const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
+      outputs[sanitizedNodeId] = {
+        label: node.data.label || nodeId,
+        data: null,
+      };
+
+      const nextNodes = edgesBySource.get(nodeId) || [];
+      await Promise.all(
+        nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
+      );
       return;
     }
 

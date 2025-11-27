@@ -11,6 +11,7 @@ export type WorkflowNodeData = {
   type: WorkflowNodeType;
   config?: Record<string, unknown>;
   status?: "idle" | "running" | "success" | "error";
+  enabled?: boolean; // Whether the step is enabled (defaults to true)
   onClick?: () => void; // For the "add" node type
 };
 
@@ -32,6 +33,11 @@ export const currentWorkflowNameAtom = atom<string>("");
 export const propertiesPanelActiveTabAtom = atom<string>("properties");
 export const showMinimapAtom = atom(false);
 export const selectedExecutionIdAtom = atom<string | null>(null);
+export const rightPanelWidthAtom = atom<string | null>(null);
+export const isPanelAnimatingAtom = atom<boolean>(false);
+export const hasSidebarBeenShownAtom = atom<boolean>(false);
+export const isSidebarCollapsedAtom = atom<boolean>(false);
+export const isTransitioningFromHomepageAtom = atom<boolean>(false);
 
 // Execution log entry type for storing run outputs per node
 export type ExecutionLogEntry = {
