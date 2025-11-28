@@ -1,10 +1,11 @@
-import { Ticket } from "lucide-react";
+import { Search, Ticket } from "lucide-react";
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
 import { createTicketCodegenTemplate } from "./codegen/create-ticket";
+import { findIssuesCodegenTemplate } from "./codegen/find-issues";
 import { LinearSettings } from "./settings";
 import { CreateTicketConfigFields } from "./steps/create-ticket/config";
-import { testLinear } from "./test";
+import { FindIssuesConfigFields } from "./steps/find-issues/config";
 
 const linearPlugin: IntegrationPlugin = {
   type: "linear",
@@ -53,7 +54,10 @@ const linearPlugin: IntegrationPlugin = {
   },
 
   testConfig: {
-    testFunction: testLinear,
+    getTestFunction: async () => {
+      const { testLinear } = await import("./test");
+      return testLinear;
+    },
   },
 
   actions: [
@@ -68,17 +72,16 @@ const linearPlugin: IntegrationPlugin = {
       configFields: CreateTicketConfigFields,
       codegenTemplate: createTicketCodegenTemplate,
     },
-    // TODO: Add Find Issues action
     {
       id: "Find Issues",
       label: "Find Issues",
       description: "Search for issues in Linear",
       category: "Linear",
-      icon: Ticket,
-      stepFunction: "createTicketStep", // TODO: Implement separate findIssuesStep
-      stepImportPath: "create-ticket",
-      configFields: CreateTicketConfigFields,
-      codegenTemplate: createTicketCodegenTemplate,
+      icon: Search,
+      stepFunction: "findIssuesStep",
+      stepImportPath: "find-issues",
+      configFields: FindIssuesConfigFields,
+      codegenTemplate: findIssuesCodegenTemplate,
     },
   ],
 };

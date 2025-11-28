@@ -24,6 +24,7 @@ import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { cn } from "@/lib/utils";
 import {
   executionLogsAtom,
+  pendingIntegrationNodesAtom,
   selectedExecutionIdAtom,
   type WorkflowNodeData,
 } from "@/lib/workflow-store";
@@ -79,6 +80,8 @@ const getIntegrationFromActionType = (actionType: string): string => {
     Scrape: "Firecrawl",
     Search: "Firecrawl",
     Condition: "Condition",
+    "Create Chat": "v0",
+    "Send Message": "v0",
   };
   return integrationMap[actionType] || "System";
 };
@@ -106,6 +109,8 @@ const requiresIntegration = (actionType: string): boolean => {
     "Database Query",
     "Scrape",
     "Search",
+    "Create Chat",
+    "Send Message",
   ];
   return requiresIntegrationActions.includes(actionType);
 };
@@ -139,6 +144,9 @@ const getProviderLogo = (actionType: string) => {
       return <Code className="size-12 text-green-300" strokeWidth={1.5} />;
     case "Condition":
       return <GitBranch className="size-12 text-pink-300" strokeWidth={1.5} />;
+    case "Create Chat":
+    case "Send Message":
+      return <IntegrationIcon className="size-12" integration="v0" />;
     default:
       return <Zap className="size-12 text-amber-300" strokeWidth={1.5} />;
   }
@@ -238,6 +246,7 @@ type ActionNodeProps = NodeProps & {
 export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   const selectedExecutionId = useAtomValue(selectedExecutionIdAtom);
   const executionLogs = useAtomValue(executionLogsAtom);
+  const pendingIntegrationNodes = useAtomValue(pendingIntegrationNodesAtom);
 
   if (!data) {
     return null;
@@ -292,8 +301,12 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
     data.description || getIntegrationFromActionType(actionType);
 
   const needsIntegration = requiresIntegration(actionType);
+  // Don't show missing indicator if we're still checking for auto-select
+  const isPendingIntegrationCheck = pendingIntegrationNodes.has(id);
   const integrationMissing =
-    needsIntegration && !hasIntegrationConfigured(data.config || {});
+    needsIntegration &&
+    !hasIntegrationConfigured(data.config || {}) &&
+    !isPendingIntegrationCheck;
 
   // Get model for AI nodes
   const getAiModel = (): string | null => {
