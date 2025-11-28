@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.0.1...v1.1.0) (2025-11-28)
+
+
+### Features
+
+* **ai-elements:** prompt input style ([#54](https://github.com/Oppulence-Engineering/workflow-builder-template/issues/54)) ([3cae6eb](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/3cae6ebec4ee1d24b1f5ce87fd2e1712ca74355c))
+
 ## [1.0.1](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.0.0...v1.0.1) (2025-11-26)
 
 
