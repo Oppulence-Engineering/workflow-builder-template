@@ -13,7 +13,7 @@
  * 1. Delete the plugin directory
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  *
- * Discovered plugins: ai-gateway, firecrawl, linear, resend, slack, v0
+ * Discovered plugins: ai-gateway, firecrawl, linear, resend, slack, v0, ext:aws, ext:azure, ext:gcp, ext:lead-scraper, ext:mongodb, ext:redis
  */
 
 import "./ai-gateway";
@@ -22,6 +22,14 @@ import "./linear";
 import "./resend";
 import "./slack";
 import "./v0";
+
+// Fork-specific extension plugins
+import "@/extensions/plugins/aws";
+import "@/extensions/plugins/azure";
+import "@/extensions/plugins/gcp";
+import "@/extensions/plugins/lead-scraper";
+import "@/extensions/plugins/mongodb";
+import "@/extensions/plugins/redis";
 
 export type { IntegrationPlugin } from "./registry";
 

@@ -23,7 +23,7 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Default port configuration for development
-ENV PORT=3000
+ENV PORT=8000
 ENV PLT_NEXT_WORKERS=1
 ENV PLT_SERVER_LOGGER_LEVEL=debug
 
@@ -44,7 +44,7 @@ RUN chmod +x /docker-entrypoint.sh
 # This allows hot reload to work correctly
 
 # Expose application port and metrics port
-EXPOSE 3000 9090
+EXPOSE 8000 9090
 
 # Use entrypoint script for migrations and startup
 ENTRYPOINT ["/docker-entrypoint.sh"]

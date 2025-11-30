@@ -158,6 +158,22 @@ function convertTemplateToJS(template: string): string {
   });
 }
 
+/**
+ * Safely prepare a user value for use in a template literal
+ * 1. Escapes backticks, backslashes, and ${} to prevent template injection
+ * 2. Converts {{}} node references to proper template expressions
+ */
+function safeTemplateValue(
+  value: string | undefined,
+  fallback: string
+): string {
+  if (!value) return escapeForTemplateLiteral(fallback);
+  // First escape user-controlled ${}, backticks, and backslashes
+  const escaped = escapeForTemplateLiteral(value);
+  // Then convert {{}} references to proper template expressions
+  return convertTemplateToJS(escaped);
+}
+
 // Helper to analyze which node outputs are used (extended from shared for SDK)
 function analyzeNodeUsageSDK(nodes: WorkflowNode[]): Set<string> {
   const usedNodes = analyzeNodeUsage(nodes);
@@ -241,9 +257,9 @@ export function generateWorkflowSDKCode(
     imports.add("import { Resend } from 'resend';");
     return [
       `fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@example.com'`,
-      `emailTo: \`${convertTemplateToJS((config.emailTo as string) || "user@example.com")}\``,
-      `emailSubject: \`${convertTemplateToJS((config.emailSubject as string) || "Notification")}\``,
-      `emailBody: \`${convertTemplateToJS((config.emailBody as string) || "No content")}\``,
+      `emailTo: \`${safeTemplateValue(config.emailTo as string, "user@example.com")}\``,
+      `emailSubject: \`${safeTemplateValue(config.emailSubject as string, "Notification")}\``,
+      `emailBody: \`${safeTemplateValue(config.emailBody as string, "No content")}\``,
       "apiKey: process.env.RESEND_API_KEY!",
     ];
   }
@@ -251,8 +267,8 @@ export function generateWorkflowSDKCode(
   function buildSlackParams(config: Record<string, unknown>): string[] {
     imports.add("import { WebClient } from '@slack/web-api';");
     return [
-      `slackChannel: \`${convertTemplateToJS((config.slackChannel as string) || "#general")}\``,
-      `slackMessage: \`${convertTemplateToJS((config.slackMessage as string) || "No message")}\``,
+      `slackChannel: \`${safeTemplateValue(config.slackChannel as string, "#general")}\``,
+      `slackMessage: \`${safeTemplateValue(config.slackMessage as string, "No message")}\``,
       "apiKey: process.env.SLACK_API_KEY!",
     ];
   }
@@ -260,12 +276,13 @@ export function generateWorkflowSDKCode(
   function buildTicketParams(config: Record<string, unknown>): string[] {
     imports.add("import { LinearClient } from '@linear/sdk';");
     const params = [
-      `ticketTitle: \`${convertTemplateToJS((config.ticketTitle as string) || "New Issue")}\``,
-      `ticketDescription: \`${convertTemplateToJS((config.ticketDescription as string) || "")}\``,
+      `ticketTitle: \`${safeTemplateValue(config.ticketTitle as string, "New Issue")}\``,
+      `ticketDescription: \`${safeTemplateValue(config.ticketDescription as string, "")}\``,
       "apiKey: process.env.LINEAR_API_KEY!",
     ];
     if (config.teamId) {
-      params.push(`teamId: "${config.teamId}"`);
+      // TeamId should be escaped as it's user input
+      params.push(`teamId: ${JSON.stringify(config.teamId)}`);
     }
     return params;
   }
@@ -293,8 +310,8 @@ export function generateWorkflowSDKCode(
     }
 
     return [
-      `model: "${modelString}"`,
-      `prompt: \`${convertTemplateToJS((config.aiPrompt as string) || "")}\``,
+      `model: ${JSON.stringify(modelString)}`,
+      `prompt: \`${safeTemplateValue(config.aiPrompt as string, "")}\``,
       "apiKey: process.env.OPENAI_API_KEY!",
     ];
   }
@@ -306,8 +323,8 @@ export function generateWorkflowSDKCode(
     const imageModel =
       (config.imageModel as string) || "google/imagen-4.0-generate";
     return [
-      `model: "${imageModel}"`,
-      `prompt: \`${convertTemplateToJS((config.imagePrompt as string) || "")}\``,
+      `model: ${JSON.stringify(imageModel)}`,
+      `prompt: \`${safeTemplateValue(config.imagePrompt as string, "")}\``,
       'size: "1024x1024"',
       "providerOptions: { openai: { apiKey: process.env.AI_GATEWAY_API_KEY! } }",
     ];
@@ -315,18 +332,46 @@ export function generateWorkflowSDKCode(
 
   function buildDatabaseParams(config: Record<string, unknown>): string[] {
     return [
-      `query: \`${convertTemplateToJS((config.dbQuery as string) || "SELECT 1")}\``,
+      `query: \`${safeTemplateValue(config.dbQuery as string, "SELECT 1")}\``,
     ];
   }
 
   function buildHttpParams(config: Record<string, unknown>): string[] {
+    // Safely serialize endpoint and method - use JSON.stringify to escape special characters
+    const safeEndpoint = JSON.stringify(
+      config.endpoint || "https://api.example.com/endpoint"
+    );
+    const safeMethod = JSON.stringify(config.httpMethod || "POST");
+
+    // Parse and re-stringify headers/body to ensure valid JSON and prevent code injection
+    let safeHeaders = "{}";
+    if (config.httpHeaders && typeof config.httpHeaders === "string") {
+      try {
+        const parsed = JSON.parse(config.httpHeaders);
+        safeHeaders = JSON.stringify(parsed);
+      } catch {
+        // If invalid JSON, use empty object
+        safeHeaders = "{}";
+      }
+    }
+
     const params = [
-      `url: "${config.endpoint || "https://api.example.com/endpoint"}"`,
-      `method: "${config.httpMethod || "POST"}"`,
-      `headers: ${config.httpHeaders || "{}"}`,
+      `url: ${safeEndpoint}`,
+      `method: ${safeMethod}`,
+      `headers: ${safeHeaders}`,
     ];
-    if (config.httpBody) {
-      params.push(`body: ${config.httpBody}`);
+
+    if (config.httpBody && typeof config.httpBody === "string") {
+      try {
+        const parsed = JSON.parse(config.httpBody);
+        params.push(`body: ${JSON.stringify(parsed)}`);
+      } catch {
+        // If invalid JSON but non-empty, stringify as string
+        const trimmed = (config.httpBody as string).trim();
+        if (trimmed && trimmed !== "{}") {
+          params.push(`body: ${JSON.stringify(trimmed)}`);
+        }
+      }
     }
     return params;
   }
@@ -355,17 +400,19 @@ export function generateWorkflowSDKCode(
     ];
 
     if (config.url) {
-      params.push(
-        `url: \`${convertTemplateToJS((config.url as string) || "")}\``
-      );
+      params.push(`url: \`${safeTemplateValue(config.url as string, "")}\``);
     }
     if (config.query) {
       params.push(
-        `query: \`${convertTemplateToJS((config.query as string) || "")}\``
+        `query: \`${safeTemplateValue(config.query as string, "")}\``
       );
     }
     if (config.limit) {
-      params.push(`limit: ${config.limit}`);
+      // Ensure limit is a safe number
+      const limit = Number.parseInt(String(config.limit), 10);
+      if (!Number.isNaN(limit) && limit > 0) {
+        params.push(`limit: ${limit}`);
+      }
     }
 
     return params;
@@ -374,12 +421,12 @@ export function generateWorkflowSDKCode(
   function buildV0CreateChatParams(config: Record<string, unknown>): string[] {
     imports.add("import { createClient } from 'v0-sdk';");
     const params = [
-      `message: \`${convertTemplateToJS((config.message as string) || "")}\``,
+      `message: \`${safeTemplateValue(config.message as string, "")}\``,
       "apiKey: process.env.V0_API_KEY!",
     ];
     if (config.system) {
       params.push(
-        `system: \`${convertTemplateToJS((config.system as string) || "")}\``
+        `system: \`${safeTemplateValue(config.system as string, "")}\``
       );
     }
     return params;
@@ -388,8 +435,8 @@ export function generateWorkflowSDKCode(
   function buildV0SendMessageParams(config: Record<string, unknown>): string[] {
     imports.add("import { createClient } from 'v0-sdk';");
     return [
-      `chatId: \`${convertTemplateToJS((config.chatId as string) || "")}\``,
-      `message: \`${convertTemplateToJS((config.message as string) || "")}\``,
+      `chatId: \`${safeTemplateValue(config.chatId as string, "")}\``,
+      `message: \`${safeTemplateValue(config.message as string, "")}\``,
       "apiKey: process.env.V0_API_KEY!",
     ];
   }

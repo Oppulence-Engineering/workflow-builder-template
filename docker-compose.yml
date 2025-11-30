@@ -24,7 +24,7 @@ services:
     container_name: workflow-builder-dev
     ports:
       # Application port
-      - "3000:3000"
+      - "8000:8000"
       # Metrics port (Prometheus)
       - "9090:9090"
     volumes:
@@ -39,9 +39,9 @@ services:
       - DATABASE_URL=postgresql://workflow:workflow@postgres:5432/workflow_builder
       # Better Auth configuration
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-secret-change-in-production}
-      - BETTER_AUTH_URL=http://localhost:3000
+      - BETTER_AUTH_URL=http://localhost:8000
       # Platformatic Watt configuration
-      - PORT=3000
+      - PORT=8000
       - PLT_NEXT_WORKERS=1
       - PLT_VALKEY_HOST=valkey:6379
       - PLT_SERVER_LOGGER_LEVEL=debug
@@ -73,7 +73,8 @@ services:
     container_name: workflow-postgres
     ports:
       # Expose for local database tools (e.g., pgAdmin, DBeaver)
-      - "5432:5432"
+      # Using 5433 to avoid conflicts with local PostgreSQL
+      - "5433:5432"
     environment:
       - POSTGRES_USER=workflow
       - POSTGRES_PASSWORD=workflow
@@ -99,12 +100,110 @@ services:
     container_name: workflow-valkey
     ports:
       # Expose for local Redis tools (e.g., RedisInsight)
-      - "6379:6379"
+      # Using 6380 to avoid conflicts with local Redis
+      - "6380:6379"
     volumes:
       # Persist cache data (optional for development)
       - valkey_data:/data
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - workflow-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Lead Scraper Service
+  # ---------------------------------------------------------------------------
+  lead-scraper:
+    image: ghcr.io/oppulence-engineering/oppulence-leads-scraper:latest
+    container_name: lead-scraper
+    platform: linux/amd64
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@lead-scraper-db:5432/postgres?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      SERVICE_NAME: vector-leads-scraper
+      ENVIRONMENT: development
+      LOG_LEVEL: info
+      NEW_RELIC_LICENSE_KEY: "0000000000000000000000000000000000000000"
+    command:
+      [
+        "-grpc",
+        "-grpc-port",
+        "50051",
+        "-gateway",
+        "-gateway-addr",
+        ":8080",
+        "-redis-enabled",
+        "-redis-url",
+        "redis://redis:6379/0",
+        "-redis-workers",
+        "10",
+        "-db-url",
+        "postgres://postgres:postgres@lead-scraper-db:5432/postgres?sslmode=disable",
+        "-service-name",
+        "vector-leads-scraper",
+        "-environment",
+        "development",
+        "-addr",
+        "0.0.0.0",
+        "-log-level",
+        "info",
+        "-c",
+        "8",
+        "-metrics-reporting-enabled=false",
+        "-newrelic-key",
+        "0000000000000000000000000000000000000000",
+      ]
+    depends_on:
+      lead-scraper-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "50051:50051"
+      - "8081:8080"
+    networks:
+      - workflow-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Lead Scraper PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  lead-scraper-db:
+    image: postgres:15-alpine
+    container_name: lead-scraper-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - lead_scraper_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - workflow-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis for Lead Scraper
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: lead-scraper-redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - lead_scraper_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -129,4 +228,8 @@ volumes:
   valkey_data:
     driver: local
   nextjs_cache:
+    driver: local
+  lead_scraper_postgres_data:
+    driver: local
+  lead_scraper_redis_data:
     driver: local

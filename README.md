@@ -46,7 +46,7 @@ docker-compose up
 
 This will start:
 
-- Next.js app at http://localhost:3000 (with metrics at port 9090)
+- Next.js app at http://localhost:8000 (with metrics at port 9090)
 - PostgreSQL database (port 5432)
 - Valkey cache (port 6379)
 
@@ -85,7 +85,7 @@ Copy `.env.example` to `.env.local` and configure your environment variables.
 
 Key variables for Docker/Platformatic:
 
-- `PORT`: Application port (default: 3000)
+- `PORT`: Application port (default: 8000)
 - `PLT_NEXT_WORKERS`: Number of worker threads (default: 1)
 - `PLT_VALKEY_HOST`: Connection string for Valkey/Redis
 - `DATABASE_URL`: Connection string for PostgreSQL
@@ -120,7 +120,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/workflow_builder
 
 # Better Auth
 BETTER_AUTH_SECRET=your-secret-key
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:8000
 
 # AI Gateway (for AI workflow generation)
 AI_GATEWAY_API_KEY=your-openai-api-key
@@ -139,7 +139,7 @@ pnpm db:push
 pnpm dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to get started.
+Visit [http://localhost:8000](http://localhost:8000) to get started.
 
 ## Workflow Types
 
@@ -159,6 +159,12 @@ Visit [http://localhost:3000](http://localhost:3000) to get started.
 - **Resend**: Send Email
 - **Slack**: Send Slack Message
 - **v0**: Create Chat, Send Message
+- **AWS**: S3 Upload, Lambda Invoke
+- **Azure**: Blob Upload
+- **Google Cloud**: Cloud Storage Upload
+- **Lead Scraper**: Create Scraping Job, Get Scraping Job, List Leads, Get Lead Stats, Download Results
+- **MongoDB**: Find Documents
+- **Redis**: Get Value
 <!-- PLUGINS:END -->
 
 ## Code Generation

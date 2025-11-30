@@ -163,7 +163,7 @@ export function removeInvisibleChars(str: string): string {
 
 /**
  * Escape a string for safe use in template literals
- * Only escapes backslashes and backticks
+ * Escapes backslashes, backticks, and ${} template expressions
  */
 export function escapeForTemplateLiteral(str: string): string {
   if (!str) {
@@ -171,7 +171,8 @@ export function escapeForTemplateLiteral(str: string): string {
   }
   return str
     .replace(/\\/g, "\\\\") // Escape backslashes first
-    .replace(/`/g, "\\`"); // Escape backticks
+    .replace(/`/g, "\\`") // Escape backticks
+    .replace(/\$\{/g, "\\${"); // Escape template expressions to prevent injection
 }
 
 /**

@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -54,7 +54,8 @@ import { IntegrationSelector } from "../ui/integration-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ActionConfig } from "./config/action-config";
 import { ActionGrid } from "./config/action-grid";
-
+import { LoopConfig } from "./config/loop-config";
+import { ParallelConfig } from "./config/parallel-config";
 import { TriggerConfig } from "./config/trigger-config";
 import { generateNodeCode } from "./utils/code-generators";
 import { WorkflowRuns } from "./workflow-runs";
@@ -173,6 +174,19 @@ export const PanelInner = () => {
   );
   const selectedNode = nodes.find((node) => node.id === selectedNodeId);
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId);
+
+  // Cleanup AbortControllers on unmount
+  useEffect(() => {
+    return () => {
+      // Abort all pending auto-select operations
+      for (const controller of Object.values(
+        autoSelectAbortControllersRef.current
+      )) {
+        controller.abort();
+      }
+      autoSelectAbortControllersRef.current = {};
+    };
+  }, []);
 
   // Count multiple selections
   const selectedNodes = nodes.filter((node) => node.selected);
@@ -320,7 +334,7 @@ export const PanelInner = () => {
     [updateNodeData, setPendingIntegrationNodes]
   );
 
-  const handleUpdateConfig = (key: string, value: string) => {
+  const handleUpdateConfig = (key: string, value: unknown) => {
     if (selectedNode) {
       let newConfig = { ...selectedNode.data.config, [key]: value };
 
@@ -332,7 +346,7 @@ export const PanelInner = () => {
       updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
 
       // When action type changes, auto-select integration if only one exists
-      if (key === "actionType") {
+      if (key === "actionType" && typeof value === "string") {
         // Cancel any pending auto-select operation for this node
         const existingController =
           autoSelectAbortControllersRef.current[selectedNode.id];
@@ -350,7 +364,7 @@ export const PanelInner = () => {
         );
         autoSelectIntegration(
           selectedNode.id,
-          value,
+          value as string,
           newConfig,
           newController.signal
         );
@@ -693,6 +707,22 @@ export const PanelInner = () => {
                 onUpdateConfig={handleUpdateConfig}
               />
             ) : null}
+
+            {selectedNode.data.type === "loop" && (
+              <LoopConfig
+                config={selectedNode.data.config || {}}
+                disabled={isGenerating}
+                onUpdateConfig={handleUpdateConfig}
+              />
+            )}
+
+            {selectedNode.data.type === "parallel" && (
+              <ParallelConfig
+                config={selectedNode.data.config || {}}
+                disabled={isGenerating}
+                onUpdateConfig={handleUpdateConfig}
+              />
+            )}
 
             {selectedNode.data.type !== "action" ||
             selectedNode.data.config?.actionType ? (

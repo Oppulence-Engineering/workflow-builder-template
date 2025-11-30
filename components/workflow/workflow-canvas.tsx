@@ -20,7 +20,7 @@ import { AIPrompt } from "@/components/ai-elements/prompt";
 import { WorkflowToolbar } from "@/components/workflow/workflow-toolbar";
 import "@xyflow/react/dist/style.css";
 
-import { PlayCircle, Zap } from "lucide-react";
+import { GitFork, PlayCircle, Repeat, Zap } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   addNodeAtom,
@@ -46,6 +46,8 @@ import { Edge } from "../ai-elements/edge";
 import { Panel } from "../ai-elements/panel";
 import { ActionNode } from "./nodes/action-node";
 import { AddNode } from "./nodes/add-node";
+import { LoopNode } from "./nodes/loop-node";
+import { ParallelNode } from "./nodes/parallel-node";
 import { TriggerNode } from "./nodes/trigger-node";
 import {
   type ContextMenuState,
@@ -69,6 +71,22 @@ const nodeTemplates = [
     displayLabel: "Action",
     icon: Zap,
     defaultConfig: {},
+  },
+  {
+    type: "loop" as WorkflowNodeType,
+    label: "",
+    description: "",
+    displayLabel: "Loop",
+    icon: Repeat,
+    defaultConfig: { loopType: "times", times: 1 },
+  },
+  {
+    type: "parallel" as WorkflowNodeType,
+    label: "",
+    description: "",
+    displayLabel: "Parallel",
+    icon: GitFork,
+    defaultConfig: { parallelMode: "all" },
   },
 ];
 
@@ -222,6 +240,8 @@ export function WorkflowCanvas() {
     () => ({
       trigger: TriggerNode,
       action: ActionNode,
+      loop: LoopNode,
+      parallel: ParallelNode,
       add: AddNode,
     }),
     []

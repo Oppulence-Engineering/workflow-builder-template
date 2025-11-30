@@ -16,6 +16,21 @@ import {
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
+/**
+ * Safely parse JSON with fallback
+ */
+function safeParseJson<T>(json: unknown, fallback: T): T {
+  if (typeof json !== "string" || !json) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    console.error("[TriggerConfig] Failed to parse JSON:", json);
+    return fallback;
+  }
+}
+
 type TriggerConfigProps = {
   config: Record<string, unknown>;
   onUpdateConfig: (key: string, value: string) => void;
@@ -105,13 +120,7 @@ export function TriggerConfig({
               onChange={(schema) =>
                 onUpdateConfig("webhookSchema", JSON.stringify(schema))
               }
-              schema={
-                config?.webhookSchema
-                  ? (JSON.parse(
-                      config.webhookSchema as string
-                    ) as SchemaField[])
-                  : []
-              }
+              schema={safeParseJson<SchemaField[]>(config?.webhookSchema, [])}
             />
             <p className="text-muted-foreground text-xs">
               Define the expected structure of the incoming webhook payload.

@@ -22,7 +22,9 @@ import {
 import { dirname, join } from "node:path";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
+const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
 const OUTPUT_FILE = join(PLUGINS_DIR, "index.ts");
+const EXTENSIONS_OUTPUT_FILE = join(EXTENSIONS_PLUGINS_DIR, "index.ts");
 const TYPES_FILE = join(process.cwd(), "lib", "types", "integration.ts");
 const STEP_REGISTRY_FILE = join(process.cwd(), "lib", "step-registry.ts");
 const README_FILE = join(process.cwd(), "README.md");
@@ -36,10 +38,14 @@ const VALID_IDENTIFIER_REGEX = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 const SYSTEM_INTEGRATION_TYPES = ["database"] as const;
 
 /**
- * Discover all plugin directories
+ * Discover plugin directories in a given path
  */
-function discoverPlugins(): string[] {
-  const entries = readdirSync(PLUGINS_DIR);
+function discoverPluginsInDir(dir: string): string[] {
+  if (!existsSync(dir)) {
+    return [];
+  }
+
+  const entries = readdirSync(dir);
 
   const plugins = entries.filter((entry) => {
     // Skip special directories and files
@@ -47,13 +53,14 @@ function discoverPlugins(): string[] {
       entry.startsWith("_") ||
       entry.startsWith(".") ||
       entry === "index.ts" ||
-      entry === "registry.ts"
+      entry === "registry.ts" ||
+      entry === "types.ts"
     ) {
       return false;
     }
 
     // Only include directories
-    const fullPath = join(PLUGINS_DIR, entry);
+    const fullPath = join(dir, entry);
     try {
       return statSync(fullPath).isDirectory();
     } catch {
@@ -65,10 +72,32 @@ function discoverPlugins(): string[] {
 }
 
 /**
+ * Discover all plugin directories (core + extensions)
+ */
+function discoverPlugins(): string[] {
+  return discoverPluginsInDir(PLUGINS_DIR);
+}
+
+/**
+ * Discover extension plugin directories
+ */
+function discoverExtensionPlugins(): string[] {
+  return discoverPluginsInDir(EXTENSIONS_PLUGINS_DIR);
+}
+
+/**
  * Generate the plugins/index.ts file
  */
-function generateIndexFile(plugins: string[]): void {
+function generateIndexFile(
+  plugins: string[],
+  extensionPlugins: string[]
+): void {
   const imports = plugins.map((plugin) => `import "./${plugin}";`).join("\n");
+  const extensionImports = extensionPlugins
+    .map((plugin) => `import "@/extensions/plugins/${plugin}";`)
+    .join("\n");
+
+  const allPlugins = [...plugins, ...extensionPlugins.map((p) => `ext:${p}`)];
 
   const content = `/**
  * Plugins Index (Auto-Generated)
@@ -85,10 +114,13 @@ function generateIndexFile(plugins: string[]): void {
  * 1. Delete the plugin directory
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  *
- * Discovered plugins: ${plugins.join(", ") || "none"}
+ * Discovered plugins: ${allPlugins.join(", ") || "none"}
  */
 
 ${imports || "// No plugins discovered"}
+
+// Fork-specific extension plugins
+${extensionImports || "// No extension plugins discovered"}
 
 export type { IntegrationPlugin } from "./registry";
 
@@ -208,7 +240,7 @@ export type IntegrationConfig = Record<string, string | undefined>;
  * Generate the lib/step-registry.ts file with step import functions
  * This enables dynamic imports that are statically analyzable by the bundler
  */
-async function generateStepRegistry(): Promise<void> {
+async function generateStepRegistry(extensionPlugins: string[]): Promise<void> {
   const { getAllIntegrations } = await import("@/plugins/registry");
   const integrations = getAllIntegrations();
 
@@ -218,15 +250,20 @@ async function generateStepRegistry(): Promise<void> {
     integration: string;
     stepImportPath: string;
     stepFunction: string;
+    isExtension: boolean;
   }> = [];
 
   for (const integration of integrations) {
+    // Check if this is an extension plugin
+    const isExtension = extensionPlugins.includes(integration.type);
+
     for (const action of integration.actions) {
       stepEntries.push({
         actionId: action.id,
         integration: integration.type,
         stepImportPath: action.stepImportPath,
         stepFunction: action.stepFunction,
+        isExtension,
       });
     }
   }
@@ -236,13 +273,24 @@ async function generateStepRegistry(): Promise<void> {
   const isValidIdentifier = (str: string) => VALID_IDENTIFIER_REGEX.test(str);
 
   const importerEntries = stepEntries
-    .map(({ actionId, integration, stepImportPath, stepFunction }) => {
-      const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
-      return `  ${key}: {
-    importer: () => import("@/plugins/${integration}/steps/${stepImportPath}/step"),
+    .map(
+      ({
+        actionId,
+        integration,
+        stepImportPath,
+        stepFunction,
+        isExtension,
+      }) => {
+        const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
+        const importPath = isExtension
+          ? `@/extensions/plugins/${integration}/steps/${stepImportPath}/step`
+          : `@/plugins/${integration}/steps/${stepImportPath}/step`;
+        return `  ${key}: {
+    importer: () => import("${importPath}"),
     stepFunction: "${stepFunction}",
   },`;
-    })
+      }
+    )
     .join("\n");
 
   const content = `/**
@@ -296,18 +344,28 @@ async function main(): Promise<void> {
   console.log("🔍 Discovering plugins...");
 
   const plugins = discoverPlugins();
+  const extensionPlugins = discoverExtensionPlugins();
 
   if (plugins.length === 0) {
     console.log("⚠️  No plugins found in plugins/ directory");
   } else {
-    console.log(`✅ Found ${plugins.length} plugin(s):`);
+    console.log(`✅ Found ${plugins.length} core plugin(s):`);
     for (const plugin of plugins) {
       console.log(`   - ${plugin}`);
     }
   }
 
+  if (extensionPlugins.length === 0) {
+    console.log("ℹ️  No extension plugins found in extensions/plugins/");
+  } else {
+    console.log(`✅ Found ${extensionPlugins.length} extension plugin(s):`);
+    for (const plugin of extensionPlugins) {
+      console.log(`   - ${plugin} (extension)`);
+    }
+  }
+
   console.log("\n📝 Generating plugins/index.ts...");
-  generateIndexFile(plugins);
+  generateIndexFile(plugins, extensionPlugins);
 
   console.log("📚 Updating README.md...");
   await updateReadme();
@@ -316,7 +374,7 @@ async function main(): Promise<void> {
   await generateTypesFile();
 
   console.log("🔧 Generating lib/step-registry.ts...");
-  await generateStepRegistry();
+  await generateStepRegistry(extensionPlugins);
 
   console.log("✨ Done! Plugin registry updated.\n");
 }

@@ -3,7 +3,12 @@ import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { atom } from "jotai";
 import { api } from "./api-client";
 
-export type WorkflowNodeType = "trigger" | "action" | "add";
+export type WorkflowNodeType =
+  | "trigger"
+  | "action"
+  | "add"
+  | "loop"
+  | "parallel";
 
 export type WorkflowNodeData = {
   label: string;

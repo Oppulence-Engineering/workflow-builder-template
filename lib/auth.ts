@@ -48,7 +48,7 @@ function getBaseURL() {
   }
 
   // Fallback: Local development
-  return "http://localhost:3000";
+  return "http://localhost:8000";
 }
 
 // Build plugins array conditionally

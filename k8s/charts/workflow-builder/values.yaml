@@ -46,7 +46,7 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: 3000
+  port: 8000
   metricsPort: 9090
 
 ingress:
@@ -117,7 +117,7 @@ env:
 
   # Better Auth configuration
   # BETTER_AUTH_SECRET should be provided via secret
-  BETTER_AUTH_URL: "http://localhost:3000"
+  BETTER_AUTH_URL: "http://localhost:8000"
 
   # Redis/Valkey configuration
   # PLT_VALKEY_HOST will be constructed from dependencies if enabled

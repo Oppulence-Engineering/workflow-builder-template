@@ -1,3 +1,4 @@
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
@@ -326,8 +327,11 @@ Example: If user says "connect node A to node B", output:
 {"op": "addEdge", "edge": {"id": "e-new", "source": "A", "target": "B", "type": "default"}}`;
     }
 
+    // Create OpenAI provider with API key
+    const openai = createOpenAI({ apiKey });
+
     const result = streamText({
-      model: "openai/gpt-5.1-instant",
+      model: openai("gpt-4o-mini"),
       system,
       prompt: userPrompt,
     });

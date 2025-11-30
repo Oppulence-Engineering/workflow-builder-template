@@ -56,7 +56,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Default port configuration
-ENV PORT=3000
+ENV PORT=8000
 ENV PLT_NEXT_WORKERS=1
 ENV PLT_SERVER_LOGGER_LEVEL=info
 
@@ -99,11 +99,11 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose application port and metrics port
-EXPOSE 3000 9090
+EXPOSE 8000 9090
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/ || exit 1
 
 # Use entrypoint script for migrations and startup
 ENTRYPOINT ["/docker-entrypoint.sh"]

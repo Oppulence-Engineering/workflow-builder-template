@@ -7,7 +7,7 @@
  * This registry enables dynamic step imports that are statically analyzable
  * by the bundler. Each action type maps to its step importer function.
  *
- * Generated entries: 10
+ * Generated entries: 21
  */
 
 import "server-only";
@@ -64,6 +64,59 @@ export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
   "Send Message": {
     importer: () => import("@/plugins/v0/steps/send-message/step"),
     stepFunction: "sendMessageStep",
+  },
+  "S3 Upload": {
+    importer: () => import("@/extensions/plugins/aws/steps/s3-upload/step"),
+    stepFunction: "s3UploadStep",
+  },
+  "Lambda Invoke": {
+    importer: () => import("@/extensions/plugins/aws/steps/lambda-invoke/step"),
+    stepFunction: "lambdaInvokeStep",
+  },
+  "Blob Upload": {
+    importer: () => import("@/extensions/plugins/azure/steps/blob-upload/step"),
+    stepFunction: "blobUploadStep",
+  },
+  "Cloud Storage Upload": {
+    importer: () =>
+      import("@/extensions/plugins/gcp/steps/storage-upload/step"),
+    stepFunction: "storageUploadStep",
+  },
+  "Create Scraping Job": {
+    importer: () =>
+      import(
+        "@/extensions/plugins/lead-scraper/steps/create-scraping-job/step"
+      ),
+    stepFunction: "createScrapingJobStep",
+  },
+  "Get Scraping Job": {
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/get-scraping-job/step"),
+    stepFunction: "getScrapingJobStep",
+  },
+  "List Leads": {
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/list-leads/step"),
+    stepFunction: "listLeadsStep",
+  },
+  "Get Lead Stats": {
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/get-lead-stats/step"),
+    stepFunction: "getLeadStatsStep",
+  },
+  "Download Results": {
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/download-results/step"),
+    stepFunction: "downloadResultsStep",
+  },
+  "Find Documents": {
+    importer: () =>
+      import("@/extensions/plugins/mongodb/steps/find-documents/step"),
+    stepFunction: "findDocumentsStep",
+  },
+  "Get Value": {
+    importer: () => import("@/extensions/plugins/redis/steps/get-value/step"),
+    stepFunction: "getValueStep",
   },
 };
 

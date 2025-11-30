@@ -27,7 +27,7 @@ services:
     container_name: workflow-builder-prod
     ports:
       # Application port
-      - "3000:3000"
+      - "8000:8000"
       # Metrics port (Prometheus)
       - "9090:9090"
     environment:
@@ -35,9 +35,9 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://workflow:workflow@postgres:5432/workflow_builder}
       # Better Auth configuration
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:8000}
       # Platformatic Watt configuration
-      - PORT=3000
+      - PORT=8000
       - PLT_NEXT_WORKERS=${PLT_NEXT_WORKERS:-2}
       - PLT_VALKEY_HOST=${PLT_VALKEY_HOST:-valkey:6379}
       - PLT_SERVER_LOGGER_LEVEL=info
@@ -71,10 +71,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 1024M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
     labels:
       # Prometheus discovery label
@@ -91,7 +91,8 @@ services:
     container_name: workflow-postgres-prod
     ports:
       # Only expose internally or remove this for production security
-      - "5432:5432"
+      # Using 5433 to avoid conflicts with local PostgreSQL
+      - "5433:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-workflow}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-workflow}
@@ -99,7 +100,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-workflow} -d ${POSTGRES_DB:-workflow_builder}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-workflow} -d ${POSTGRES_DB:-workflow_builder}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -110,10 +115,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   # ---------------------------------------------------------------------------
@@ -124,7 +129,8 @@ services:
     container_name: workflow-valkey-prod
     ports:
       # Only expose internally or remove this for production security
-      - "6379:6379"
+      # Using 6380 to avoid conflicts with local Redis
+      - "6380:6379"
     volumes:
       - valkey_data:/data
     healthcheck:
@@ -139,10 +145,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
 # =============================================================================
@@ -160,5 +166,3 @@ volumes:
     driver: local
   valkey_data:
     driver: local
-
-

@@ -22,8 +22,25 @@ function parseHeaders(httpHeaders?: string): Record<string, string> {
     return {};
   }
   try {
-    return JSON.parse(httpHeaders);
-  } catch {
+    const parsed = JSON.parse(httpHeaders);
+    // Validate that parsed headers is an object (not array or primitive)
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      console.warn(
+        "[HTTP Request] Headers must be a JSON object, got:",
+        typeof parsed
+      );
+      return {};
+    }
+    return parsed;
+  } catch (error) {
+    console.warn(
+      "[HTTP Request] Failed to parse headers JSON:",
+      error instanceof Error ? error.message : "Invalid JSON"
+    );
     return {};
   }
 }

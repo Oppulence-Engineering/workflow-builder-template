@@ -20,9 +20,24 @@ import {
 } from "@/plugins";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
+/**
+ * Safely parse JSON with fallback
+ */
+function safeParseJson<T>(json: unknown, fallback: T): T {
+  if (typeof json !== "string" || !json) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    console.error("[ActionConfig] Failed to parse JSON:", json);
+    return fallback;
+  }
+}
+
 type ActionConfigProps = {
   config: Record<string, unknown>;
-  onUpdateConfig: (key: string, value: string) => void;
+  onUpdateConfig: (key: string, value: unknown) => void;
   disabled: boolean;
 };
 
@@ -68,11 +83,7 @@ function DatabaseQueryFields({
           onChange={(schema) =>
             onUpdateConfig("dbSchema", JSON.stringify(schema))
           }
-          schema={
-            config?.dbSchema
-              ? (JSON.parse(config.dbSchema as string) as SchemaField[])
-              : []
-          }
+          schema={safeParseJson<SchemaField[]>(config?.dbSchema, [])}
         />
       </div>
     </>
@@ -267,10 +278,7 @@ export function ActionConfig({
     onUpdateConfig("actionType", value);
   };
 
-  // Adapter for plugin config components that expect (key, value: unknown)
-  const handlePluginUpdateConfig = (key: string, value: unknown) => {
-    onUpdateConfig(key, String(value));
-  };
+  // Plugin config components use the same signature as onUpdateConfig
 
   // Get dynamic config fields for plugin actions
   const pluginAction = actionType ? findActionById(actionType) : null;
@@ -366,7 +374,7 @@ export function ActionConfig({
         <pluginAction.configFields
           config={config}
           disabled={disabled}
-          onUpdateConfig={handlePluginUpdateConfig}
+          onUpdateConfig={onUpdateConfig}
         />
       )}
     </>
