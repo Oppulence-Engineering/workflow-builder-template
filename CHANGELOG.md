@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.0...v1.2.1) (2025-11-30)
+
+
+### Bug Fixes
+
+* resolve all lint errors in extensions and lib files ([cdcd1b0](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/cdcd1b0c03c78fd56e6e4688ecbf950749af7994))
+
 # [1.2.0](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.1.0...v1.2.0) (2025-11-30)
 
 
