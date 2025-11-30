@@ -1,3 +1,11 @@
+## [1.2.2](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.1...v1.2.2) (2025-11-30)
+
+
+### Bug Fixes
+
+* extension plugin type compatibility and import paths ([52d464c](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/52d464cdf6eb5f54424aa68fa5d97e6dd6345784))
+* resolve merge conflicts in discover-plugins.ts and fix extension action IDs ([b43c52f](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/b43c52f895248f5e7cc324385f974d0cc00266de))
+
 ## [1.2.1](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.0...v1.2.1) (2025-11-30)
 
 
