@@ -1,19 +1,16 @@
 import { Cloud } from "lucide-react";
+import { GCPSettings } from "./settings";
 import type { IntegrationPlugin } from "@/plugins/registry";
+import { StorageUploadConfigFields } from "./steps/storage-upload/config";
 import { registerIntegration } from "@/plugins/registry";
 import { storageUploadCodegenTemplate } from "./codegen/storage-upload";
-import { GCPSettings } from "./settings";
-import { StorageUploadConfigFields } from "./steps/storage-upload/config";
 
 const gcpPlugin: IntegrationPlugin = {
   type: "gcp" as const,
   label: "Google Cloud",
   description: "Google Cloud Platform services",
 
-  icon: {
-    type: "image",
-    value: "/integrations/gcp.svg",
-  },
+  icon: Cloud,
 
   settingsComponent: GCPSettings,
 

@@ -1,19 +1,16 @@
 import { Database } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
-import { findDocumentsCodegenTemplate } from "./codegen/find-documents";
-import { MongoDBSettings } from "./settings";
 import { FindDocumentsConfigFields } from "./steps/find-documents/config";
+import type { IntegrationPlugin } from "@/plugins/registry";
+import { MongoDBSettings } from "./settings";
+import { findDocumentsCodegenTemplate } from "./codegen/find-documents";
+import { registerIntegration } from "@/plugins/registry";
 
 const mongodbPlugin: IntegrationPlugin = {
   type: "mongodb" as const,
   label: "MongoDB",
   description: "MongoDB document database",
 
-  icon: {
-    type: "image",
-    value: "/integrations/mongodb.svg",
-  },
+  icon: Database,
 
   settingsComponent: MongoDBSettings,
 

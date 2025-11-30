@@ -1,19 +1,16 @@
 import { Database } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
-import { getValueCodegenTemplate } from "./codegen/get-value";
-import { RedisSettings } from "./settings";
 import { GetValueConfigFields } from "./steps/get-value/config";
+import type { IntegrationPlugin } from "@/plugins/registry";
+import { RedisSettings } from "./settings";
+import { getValueCodegenTemplate } from "./codegen/get-value";
+import { registerIntegration } from "@/plugins/registry";
 
 const redisPlugin: IntegrationPlugin = {
   type: "redis" as const,
   label: "Redis",
   description: "Redis cache and key-value store",
 
-  icon: {
-    type: "image",
-    value: "/integrations/redis.svg",
-  },
+  icon: Database,
 
   settingsComponent: RedisSettings,
 

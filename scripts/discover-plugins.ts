@@ -11,15 +11,15 @@
  * - Automatically: Before build (in package.json)
  */
 
+import { dirname, join } from "node:path";
 import {
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
+  readdirSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
 const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
@@ -32,6 +32,51 @@ const PLUGINS_MARKER_REGEX =
 
 // Regex to validate JavaScript identifiers
 const VALID_IDENTIFIER_REGEX = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+
+/**
+ * Check if a string is a valid JavaScript identifier
+ */
+function isValidIdentifier(str: string): boolean {
+  return VALID_IDENTIFIER_REGEX.test(str);
+}
+
+/**
+ * Legacy action type mappings for backward compatibility
+ * Maps old label-based action types to new namespaced IDs
+ */
+const LEGACY_ACTION_MAPPINGS: Record<string, string> = {
+  "Send Email": "resend:send-email",
+  "Send Slack Message": "slack:send-message",
+  "Create Linear Ticket": "linear:create-ticket",
+  "Scrape Website": "firecrawl:scrape",
+  "Search Web": "firecrawl:search",
+  "Generate Text": "ai-gateway:generate-text",
+  "Generate Image": "ai-gateway:generate-image",
+  "Generate with v0": "v0:generate",
+};
+
+/**
+ * Convert a string to kebab-case
+ */
+function toKebabCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+}
+
+/**
+ * Compute a namespaced action ID from integration type and action slug/id
+ * Uses slug if available, otherwise converts id to kebab-case
+ */
+function computeActionId(
+  integrationType: string,
+  actionSlug: string | undefined,
+  actionId?: string
+): string {
+  const slug = actionSlug || (actionId ? toKebabCase(actionId) : "unknown");
+  return `${integrationType}:${slug}`;
+}
 
 // System integrations that don't have plugins
 const SYSTEM_INTEGRATION_TYPES = ["database"] as const;
@@ -121,18 +166,26 @@ ${imports || "// No plugins discovered"}
 // Fork-specific extension plugins
 ${extensionImports || "// No extension plugins discovered"}
 
-export type { IntegrationPlugin } from "./registry";
+export type { IntegrationPlugin, PluginAction, ActionWithFullId } from "./registry";
 
 // Export the registry utilities
 export {
+  computeActionId,
   findActionById,
+  generateAIActionPrompts,
   getActionsByCategory,
   getAllActions,
+  getAllDependencies,
+  getAllEnvVars,
   getAllIntegrations,
+  getCredentialMapping,
+  getDependenciesForActions,
   getIntegration,
   getIntegrationLabels,
   getIntegrationTypes,
+  getPluginEnvVars,
   getSortedIntegrationTypes,
+  parseActionId,
   registerIntegration,
 } from "./registry";
 `;
@@ -239,13 +292,16 @@ export type IntegrationConfig = Record<string, string | undefined>;
  * Generate the lib/step-registry.ts file with step import functions
  * This enables dynamic imports that are statically analyzable by the bundler
  */
-async function generateStepRegistry(extensionPlugins: string[]): Promise<void> {
+async function generateStepRegistry(
+  extensionPluginsList: string[]
+): Promise<void> {
   const { getAllIntegrations } = await import("@/plugins/registry");
   const integrations = getAllIntegrations();
 
   // Collect all action -> step mappings
   const stepEntries: Array<{
     actionId: string;
+    label: string;
     integration: string;
     stepImportPath: string;
     stepFunction: string;
@@ -254,11 +310,18 @@ async function generateStepRegistry(extensionPlugins: string[]): Promise<void> {
 
   for (const integration of integrations) {
     // Check if this is an extension plugin
-    const isExtension = extensionPlugins.includes(integration.type);
+    const isExtension = extensionPluginsList.includes(integration.type);
 
     for (const action of integration.actions) {
+      // Use slug if available, otherwise use id (for extension plugins)
+      const fullActionId = computeActionId(
+        integration.type,
+        action.slug,
+        action.id
+      );
       stepEntries.push({
-        actionId: action.id,
+        actionId: fullActionId,
+        label: action.label,
         integration: integration.type,
         stepImportPath: action.stepImportPath,
         stepFunction: action.stepFunction,
@@ -267,10 +330,38 @@ async function generateStepRegistry(extensionPlugins: string[]): Promise<void> {
     }
   }
 
-  // Generate the step importer map with static imports
-  // Use unquoted keys when valid identifiers, quoted otherwise
-  const isValidIdentifier = (str: string) => VALID_IDENTIFIER_REGEX.test(str);
+  // Build reverse mapping from action IDs to legacy labels
+  const legacyLabelsForAction: Record<string, string[]> = {};
+  for (const [legacyLabel, actionId] of Object.entries(
+    LEGACY_ACTION_MAPPINGS
+  )) {
+    if (!legacyLabelsForAction[actionId]) {
+      legacyLabelsForAction[actionId] = [];
+    }
+    legacyLabelsForAction[actionId].push(legacyLabel);
+  }
 
+  // Generate label entries for action ID to label mapping
+  const labelEntries = stepEntries
+    .map(({ actionId, label }) => {
+      const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
+      return `  ${key}: "${label}",`;
+    })
+    .join("\n");
+
+  // Generate legacy label entries for backward compatibility
+  const legacyLabelEntries = Object.entries(LEGACY_ACTION_MAPPINGS)
+    .map(([legacyLabel, actionId]) => {
+      const entry = stepEntries.find((e) => e.actionId === actionId);
+      const label = entry?.label || legacyLabel;
+      return `  "${legacyLabel}": "${label}",`;
+    })
+    .join("\n");
+
+  // Generate the step importer map with static imports
+  // Include both namespaced IDs and legacy label-based IDs for backward compatibility
+  // Note: Core plugins have steps directly in steps/ folder (e.g., steps/send-email.ts)
+  // Extension plugins have steps in subdirectories (e.g., steps/s3-upload/step.ts)
   const importerEntries = stepEntries
     .map(
       ({
@@ -283,7 +374,7 @@ async function generateStepRegistry(extensionPlugins: string[]): Promise<void> {
         const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
         const importPath = isExtension
           ? `@/extensions/plugins/${integration}/steps/${stepImportPath}/step`
-          : `@/plugins/${integration}/steps/${stepImportPath}/step`;
+          : `@/plugins/${integration}/steps/${stepImportPath}`;
         return `  ${key}: {
     importer: () => import("${importPath}"),
     stepFunction: "${stepFunction}",
@@ -323,10 +414,26 @@ ${importerEntries}
 };
 
 /**
+ * Action labels - maps action IDs to human-readable labels
+ * Used for displaying friendly names in the UI (e.g., Runs tab)
+ */
+export const ACTION_LABELS: Record<string, string> = {
+${labelEntries}
+${legacyLabelEntries}
+};
+
+/**
  * Get a step importer for an action type
  */
 export function getStepImporter(actionType: string): StepImporter | undefined {
   return PLUGIN_STEP_IMPORTERS[actionType];
+}
+
+/**
+ * Get the human-readable label for an action type
+ */
+export function getActionLabel(actionType: string): string | undefined {
+  return ACTION_LABELS[actionType];
 }
 `;
 
