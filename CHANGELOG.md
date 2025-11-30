@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.1.0...v1.2.0) (2025-11-30)
+
+
+### Features
+
+* add Makefile, change default port to 8000, update docker-compose with env file support ([c3ddd02](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/c3ddd02ca735f7a113e460a228119b8401eafdee))
+
 # [1.1.0](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.0.1...v1.1.0) (2025-11-28)
 
 
