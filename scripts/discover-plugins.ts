@@ -11,15 +11,15 @@
  * - Automatically: Before build (in package.json)
  */
 
+import { dirname, join } from "node:path";
 import {
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
+  readdirSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
 const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");

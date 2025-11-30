@@ -1,9 +1,9 @@
-import { Cloud } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
-import { blobUploadCodegenTemplate } from "./codegen/blob-upload";
 import { AzureSettings } from "./settings";
 import { BlobUploadConfigFields } from "./steps/blob-upload/config";
+import { Cloud } from "lucide-react";
+import type { IntegrationPlugin } from "@/plugins/registry";
+import { blobUploadCodegenTemplate } from "./codegen/blob-upload";
+import { registerIntegration } from "@/plugins/registry";
 
 const azurePlugin: IntegrationPlugin = {
   type: "azure" as const,

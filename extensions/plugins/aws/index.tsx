@@ -1,11 +1,11 @@
+import { AWSSettings } from "./settings";
 import { Cloud } from "lucide-react";
 import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
-import { lambdaInvokeCodegenTemplate } from "./codegen/lambda-invoke";
-import { s3UploadCodegenTemplate } from "./codegen/s3-upload";
-import { AWSSettings } from "./settings";
 import { InvokeLambdaConfigFields } from "./steps/lambda-invoke/config";
 import { InvokeS3ConfigFields } from "./steps/s3-upload/config";
+import { lambdaInvokeCodegenTemplate } from "./codegen/lambda-invoke";
+import { registerIntegration } from "@/plugins/registry";
+import { s3UploadCodegenTemplate } from "./codegen/s3-upload";
 
 const awsPlugin: IntegrationPlugin = {
   type: "aws" as const,
