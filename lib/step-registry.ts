@@ -25,99 +25,135 @@ export type StepImporter = {
  * These imports are statically analyzable by the bundler
  */
 export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
-  "Generate Text": {
+  "ai-gateway:generate-text": {
     importer: () => import("@/plugins/ai-gateway/steps/generate-text/step"),
     stepFunction: "generateTextStep",
   },
-  "Generate Image": {
+  "ai-gateway:generate-image": {
     importer: () => import("@/plugins/ai-gateway/steps/generate-image/step"),
     stepFunction: "generateImageStep",
   },
-  Scrape: {
+  "firecrawl:scrape": {
     importer: () => import("@/plugins/firecrawl/steps/scrape/step"),
     stepFunction: "firecrawlScrapeStep",
   },
-  Search: {
+  "firecrawl:search": {
     importer: () => import("@/plugins/firecrawl/steps/search/step"),
     stepFunction: "firecrawlSearchStep",
   },
-  "Create Ticket": {
+  "linear:create-ticket": {
     importer: () => import("@/plugins/linear/steps/create-ticket/step"),
     stepFunction: "createTicketStep",
   },
-  "Find Issues": {
+  "linear:find-issues": {
     importer: () => import("@/plugins/linear/steps/find-issues/step"),
     stepFunction: "findIssuesStep",
   },
-  "Send Email": {
+  "resend:send-email": {
     importer: () => import("@/plugins/resend/steps/send-email/step"),
     stepFunction: "sendEmailStep",
   },
-  "Send Slack Message": {
+  "slack:send-message": {
     importer: () => import("@/plugins/slack/steps/send-slack-message/step"),
     stepFunction: "sendSlackMessageStep",
   },
-  "Create Chat": {
+  "v0:create-chat": {
     importer: () => import("@/plugins/v0/steps/create-chat/step"),
     stepFunction: "createChatStep",
   },
-  "Send Message": {
+  "v0:send-message": {
     importer: () => import("@/plugins/v0/steps/send-message/step"),
     stepFunction: "sendMessageStep",
   },
-  "S3 Upload": {
+  "aws:s3-upload": {
     importer: () => import("@/extensions/plugins/aws/steps/s3-upload/step"),
     stepFunction: "s3UploadStep",
   },
-  "Lambda Invoke": {
+  "aws:lambda-invoke": {
     importer: () => import("@/extensions/plugins/aws/steps/lambda-invoke/step"),
     stepFunction: "lambdaInvokeStep",
   },
-  "Blob Upload": {
+  "azure:blob-upload": {
     importer: () => import("@/extensions/plugins/azure/steps/blob-upload/step"),
     stepFunction: "blobUploadStep",
   },
-  "Cloud Storage Upload": {
+  "gcp:cloud-storage-upload": {
     importer: () =>
       import("@/extensions/plugins/gcp/steps/storage-upload/step"),
     stepFunction: "storageUploadStep",
   },
-  "Create Scraping Job": {
+  "lead-scraper:create-scraping-job": {
     importer: () =>
       import(
         "@/extensions/plugins/lead-scraper/steps/create-scraping-job/step"
       ),
     stepFunction: "createScrapingJobStep",
   },
-  "Get Scraping Job": {
+  "lead-scraper:get-scraping-job": {
     importer: () =>
       import("@/extensions/plugins/lead-scraper/steps/get-scraping-job/step"),
     stepFunction: "getScrapingJobStep",
   },
-  "List Leads": {
+  "lead-scraper:list-leads": {
     importer: () =>
       import("@/extensions/plugins/lead-scraper/steps/list-leads/step"),
     stepFunction: "listLeadsStep",
   },
-  "Get Lead Stats": {
+  "lead-scraper:get-lead-stats": {
     importer: () =>
       import("@/extensions/plugins/lead-scraper/steps/get-lead-stats/step"),
     stepFunction: "getLeadStatsStep",
   },
-  "Download Results": {
+  "lead-scraper:download-results": {
     importer: () =>
       import("@/extensions/plugins/lead-scraper/steps/download-results/step"),
     stepFunction: "downloadResultsStep",
   },
-  "Find Documents": {
+  "mongodb:find-documents": {
     importer: () =>
       import("@/extensions/plugins/mongodb/steps/find-documents/step"),
     stepFunction: "findDocumentsStep",
   },
-  "Get Value": {
+  "redis:get-value": {
     importer: () => import("@/extensions/plugins/redis/steps/get-value/step"),
     stepFunction: "getValueStep",
   },
+};
+
+/**
+ * Action labels - maps action IDs to human-readable labels
+ * Used for displaying friendly names in the UI (e.g., Runs tab)
+ */
+export const ACTION_LABELS: Record<string, string> = {
+  "ai-gateway:generate-text": "Generate Text",
+  "ai-gateway:generate-image": "Generate Image",
+  "firecrawl:scrape": "Scrape URL",
+  "firecrawl:search": "Search Web",
+  "linear:create-ticket": "Create Ticket",
+  "linear:find-issues": "Find Issues",
+  "resend:send-email": "Send Email",
+  "slack:send-message": "Send Slack Message",
+  "v0:create-chat": "Create Chat",
+  "v0:send-message": "Send Message",
+  "aws:s3-upload": "S3 Upload",
+  "aws:lambda-invoke": "Lambda Invoke",
+  "azure:blob-upload": "Blob Upload",
+  "gcp:cloud-storage-upload": "Cloud Storage Upload",
+  "lead-scraper:create-scraping-job": "Create Scraping Job",
+  "lead-scraper:get-scraping-job": "Get Scraping Job",
+  "lead-scraper:list-leads": "List Leads",
+  "lead-scraper:get-lead-stats": "Get Lead Stats",
+  "lead-scraper:download-results": "Download Results",
+  "mongodb:find-documents": "Find Documents",
+  "redis:get-value": "Get Value",
+  "Send Email": "Send Email",
+  "Send Slack Message": "Send Slack Message",
+  "Create Linear Ticket": "Create Ticket",
+  "Scrape Website": "Scrape URL",
+  "Search Web": "Search Web",
+  "Generate Text": "Generate Text",
+  "Generate Image": "Generate Image",
+  "Generate with v0": "Generate with v0",
 };
 
 /**
@@ -125,4 +161,11 @@ export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
  */
 export function getStepImporter(actionType: string): StepImporter | undefined {
   return PLUGIN_STEP_IMPORTERS[actionType];
+}
+
+/**
+ * Get the human-readable label for an action type
+ */
+export function getActionLabel(actionType: string): string | undefined {
+  return ACTION_LABELS[actionType];
 }

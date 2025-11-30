@@ -31,17 +31,25 @@ import "@/extensions/plugins/lead-scraper";
 import "@/extensions/plugins/mongodb";
 import "@/extensions/plugins/redis";
 
-export type { IntegrationPlugin } from "./registry";
+export type { IntegrationPlugin, PluginAction, ActionWithFullId } from "./registry";
 
 // Export the registry utilities
 export {
+  computeActionId,
   findActionById,
+  generateAIActionPrompts,
   getActionsByCategory,
   getAllActions,
+  getAllDependencies,
+  getAllEnvVars,
   getAllIntegrations,
+  getCredentialMapping,
+  getDependenciesForActions,
   getIntegration,
   getIntegrationLabels,
   getIntegrationTypes,
+  getPluginEnvVars,
   getSortedIntegrationTypes,
+  parseActionId,
   registerIntegration,
 } from "./registry";
