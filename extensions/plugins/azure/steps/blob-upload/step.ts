@@ -116,5 +116,5 @@ export async function blobUploadStep(
   input: BlobUploadInput
 ): Promise<BlobUploadResult> {
   "use step";
-  return withStepLogging(input, () => blobUpload(input));
+  return await withStepLogging(input, () => blobUpload(input));
 }

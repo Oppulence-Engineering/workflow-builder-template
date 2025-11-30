@@ -167,7 +167,9 @@ function safeTemplateValue(
   value: string | undefined,
   fallback: string
 ): string {
-  if (!value) return escapeForTemplateLiteral(fallback);
+  if (!value) {
+    return escapeForTemplateLiteral(fallback);
+  }
   // First escape user-controlled ${}, backticks, and backslashes
   const escaped = escapeForTemplateLiteral(value);
   // Then convert {{}} references to proper template expressions
@@ -336,6 +338,7 @@ export function generateWorkflowSDKCode(
     ];
   }
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: HTTP params require handling many configuration options
   function buildHttpParams(config: Record<string, unknown>): string[] {
     // Safely serialize endpoint and method - use JSON.stringify to escape special characters
     const safeEndpoint = JSON.stringify(

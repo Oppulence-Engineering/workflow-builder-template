@@ -24,7 +24,6 @@ import { dirname, join } from "node:path";
 const PLUGINS_DIR = join(process.cwd(), "plugins");
 const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
 const OUTPUT_FILE = join(PLUGINS_DIR, "index.ts");
-const EXTENSIONS_OUTPUT_FILE = join(EXTENSIONS_PLUGINS_DIR, "index.ts");
 const TYPES_FILE = join(process.cwd(), "lib", "types", "integration.ts");
 const STEP_REGISTRY_FILE = join(process.cwd(), "lib", "step-registry.ts");
 const README_FILE = join(process.cwd(), "README.md");

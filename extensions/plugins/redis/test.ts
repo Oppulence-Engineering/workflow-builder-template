@@ -2,9 +2,10 @@
  * Test Redis credentials by validating the URL format
  * Note: Actual connection testing happens server-side in the step function
  */
-export async function testRedis(
-  credentials: Record<string, string>
-): Promise<{ success: boolean; error?: string }> {
+export function testRedis(credentials: Record<string, string>): {
+  success: boolean;
+  error?: string;
+} {
   const { REDIS_URL } = credentials;
 
   if (!REDIS_URL) {

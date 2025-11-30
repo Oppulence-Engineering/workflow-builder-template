@@ -72,7 +72,6 @@ export const LoopNode = memo(({ data, selected, id }: LoopNodeProps) => {
         return condition
           ? `while: ${condition.slice(0, 20)}...`
           : "while: [condition]";
-      case "times":
       default:
         return `${times} iteration${times !== 1 ? "s" : ""}`;
     }

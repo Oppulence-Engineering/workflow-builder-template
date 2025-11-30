@@ -110,5 +110,5 @@ export async function getScrapingJobStep(
   input: GetScrapingJobInput
 ): Promise<GetScrapingJobResult> {
   "use step";
-  return withStepLogging(input, () => getScrapingJob(input));
+  return await withStepLogging(input, () => getScrapingJob(input));
 }

@@ -104,5 +104,5 @@ export async function s3UploadStep(
   input: S3UploadInput
 ): Promise<S3UploadResult> {
   "use step";
-  return withStepLogging(input, () => s3Upload(input));
+  return await withStepLogging(input, () => s3Upload(input));
 }

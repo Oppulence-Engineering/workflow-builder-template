@@ -1,6 +1,7 @@
-export async function testAzure(
-  credentials: Record<string, string>
-): Promise<{ success: boolean; error?: string }> {
+export function testAzure(credentials: Record<string, string>): {
+  success: boolean;
+  error?: string;
+} {
   const { AZURE_STORAGE_CONNECTION_STRING, AZURE_CONTAINER } = credentials;
 
   if (!AZURE_STORAGE_CONNECTION_STRING) {

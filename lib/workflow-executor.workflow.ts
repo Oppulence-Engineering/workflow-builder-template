@@ -13,6 +13,9 @@ import { triggerStep } from "./steps/trigger";
 import { getErrorMessageAsync } from "./utils";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
+// Top-level regex pattern for template parsing (moved here for performance)
+const TEMPLATE_PATTERN = /\{\{@([^:]+):([^}]+)\}\}/;
+
 // System actions that don't have plugins - maps to module import functions
 const SYSTEM_ACTIONS: Record<string, StepImporter> = {
   "Database Query": {
@@ -80,8 +83,7 @@ function resolveCollectionFromTemplate(
   collectionRef: string,
   outputs: NodeOutputs
 ): unknown[] {
-  const templatePattern = /\{\{@([^:]+):([^}]+)\}\}/;
-  const match = collectionRef.match(templatePattern);
+  const match = collectionRef.match(TEMPLATE_PATTERN);
 
   if (!match) {
     return [];
@@ -188,7 +190,7 @@ async function executeTimesLoop(
       input.executeNode
     );
     iterationResults.push(...bodyResults);
-    iterationsCompleted++;
+    iterationsCompleted += 1;
   }
 
   return { iterationsCompleted, results: iterationResults };
@@ -226,7 +228,7 @@ async function executeForEachLoop(
       input.executeNode
     );
     iterationResults.push(...bodyResults);
-    iterationsCompleted++;
+    iterationsCompleted += 1;
   }
 
   return { iterationsCompleted, results: iterationResults };
@@ -276,11 +278,11 @@ async function executeWhileLoop(
         input.executeNode
       );
       iterationResults.push(...bodyResults);
-      iterationsCompleted++;
+      iterationsCompleted += 1;
     } finally {
       // Always increment index to prevent infinite loops, even on errors
-      loopContext.index++;
-      loopContext.iteration++;
+      loopContext.index += 1;
+      loopContext.iteration += 1;
     }
   }
 
@@ -919,11 +921,12 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
                   for (const promise of promises) {
                     promise
+                      // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Promise race logic requires handling multiple outcomes
                       .then((res) => {
                         if (res?.success) {
                           resolve(res);
                         } else {
-                          completedCount++;
+                          completedCount += 1;
                           errors.push(res?.error || "Unknown error");
                           if (completedCount === promises.length) {
                             reject(
@@ -935,7 +938,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
                         }
                       })
                       .catch((err) => {
-                        completedCount++;
+                        completedCount += 1;
                         errors.push(String(err));
                         if (completedCount === promises.length) {
                           reject(

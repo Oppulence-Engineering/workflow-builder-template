@@ -27,6 +27,7 @@ export type FindDocumentsInput = StepInput &
   z.infer<typeof FindDocumentsInputSchema>;
 export type FindDocumentsResult = z.infer<typeof FindDocumentsResultSchema>;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: MongoDB find requires handling many query options
 async function findDocuments(
   input: FindDocumentsInput
 ): Promise<FindDocumentsResult> {
@@ -177,5 +178,5 @@ export async function findDocumentsStep(
   input: FindDocumentsInput
 ): Promise<FindDocumentsResult> {
   "use step";
-  return withStepLogging(input, () => findDocuments(input));
+  return await withStepLogging(input, () => findDocuments(input));
 }

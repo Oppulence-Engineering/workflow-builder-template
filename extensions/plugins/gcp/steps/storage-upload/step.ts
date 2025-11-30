@@ -29,6 +29,7 @@ export type StorageUploadInput = StepInput &
   z.infer<typeof StorageUploadInputSchema>;
 export type StorageUploadResult = z.infer<typeof StorageUploadResultSchema>;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: GCP Storage upload requires handling many edge cases
 async function storageUpload(
   input: StorageUploadInput
 ): Promise<StorageUploadResult> {
@@ -168,5 +169,5 @@ export async function storageUploadStep(
   input: StorageUploadInput
 ): Promise<StorageUploadResult> {
   "use step";
-  return withStepLogging(input, () => storageUpload(input));
+  return await withStepLogging(input, () => storageUpload(input));
 }

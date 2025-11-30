@@ -30,6 +30,7 @@ export type LambdaInvokeInput = StepInput &
   z.infer<typeof LambdaInvokeInputSchema>;
 export type LambdaInvokeResult = z.infer<typeof LambdaInvokeResultSchema>;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: AWS Lambda invoke requires handling many edge cases
 async function lambdaInvoke(
   input: LambdaInvokeInput
 ): Promise<LambdaInvokeResult> {
@@ -132,5 +133,5 @@ export async function lambdaInvokeStep(
   input: LambdaInvokeInput
 ): Promise<LambdaInvokeResult> {
   "use step";
-  return withStepLogging(input, () => lambdaInvoke(input));
+  return await withStepLogging(input, () => lambdaInvoke(input));
 }

@@ -11,9 +11,7 @@
 // Register fork-specific plugins
 import "./plugins";
 
-// Export admin components
+// biome-ignore lint/performance/noBarrelFile: This is the main entry point for extensions - barrel file is intentional
 export { ADMIN_VERSION } from "./components/admin";
-// Export custom hooks
 export { HOOKS_VERSION } from "./hooks";
-// Export custom node types for workflow canvas
 export { extensionNodeMetadata, extensionNodeTypes } from "./nodes";

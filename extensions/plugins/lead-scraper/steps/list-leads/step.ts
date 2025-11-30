@@ -162,5 +162,5 @@ export async function listLeadsStep(
   input: ListLeadsInput
 ): Promise<ListLeadsResult> {
   "use step";
-  return withStepLogging(input, () => listLeads(input));
+  return await withStepLogging(input, () => listLeads(input));
 }

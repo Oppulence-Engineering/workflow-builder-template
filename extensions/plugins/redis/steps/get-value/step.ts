@@ -57,7 +57,9 @@ async function getValue(input: GetValueInput): Promise<GetValueResult> {
     client = new Redis(credentials.REDIS_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
-        if (times > 3) return null;
+        if (times > 3) {
+          return null;
+        }
         return Math.min(times * 200, 1000);
       },
     });
@@ -88,5 +90,5 @@ export async function getValueStep(
   input: GetValueInput
 ): Promise<GetValueResult> {
   "use step";
-  return withStepLogging(input, () => getValue(input));
+  return await withStepLogging(input, () => getValue(input));
 }

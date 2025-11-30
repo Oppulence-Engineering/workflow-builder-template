@@ -2,6 +2,7 @@
  * Lead Scraper connection test
  * Validates the API endpoint is reachable and credentials are valid
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Connection test requires validating many fields and error cases
 export async function testLeadScraper(
   credentials: Record<string, string>
 ): Promise<{ success: boolean; error?: string }> {

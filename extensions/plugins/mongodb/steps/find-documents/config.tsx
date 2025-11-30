@@ -51,7 +51,7 @@ export function FindDocumentsConfigFields({
           max={1000}
           min={1}
           onChange={(e) =>
-            onUpdateConfig("limit", Number.parseInt(e.target.value) || 100)
+            onUpdateConfig("limit", Number.parseInt(e.target.value, 10) || 100)
           }
           placeholder="100"
           type="number"
@@ -66,7 +66,7 @@ export function FindDocumentsConfigFields({
           id="mongodb-skip"
           min={0}
           onChange={(e) =>
-            onUpdateConfig("skip", Number.parseInt(e.target.value) || 0)
+            onUpdateConfig("skip", Number.parseInt(e.target.value, 10) || 0)
           }
           placeholder="0"
           type="number"

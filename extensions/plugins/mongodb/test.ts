@@ -1,6 +1,7 @@
-export async function testMongoDB(
-  credentials: Record<string, string>
-): Promise<{ success: boolean; error?: string }> {
+export function testMongoDB(credentials: Record<string, string>): {
+  success: boolean;
+  error?: string;
+} {
   const { MONGODB_URI, MONGODB_DB } = credentials;
 
   if (!MONGODB_URI) {

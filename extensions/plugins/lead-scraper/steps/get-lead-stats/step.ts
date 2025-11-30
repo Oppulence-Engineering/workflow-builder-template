@@ -144,5 +144,5 @@ export async function getLeadStatsStep(
   input: GetLeadStatsInput
 ): Promise<GetLeadStatsResult> {
   "use step";
-  return withStepLogging(input, () => getLeadStats(input));
+  return await withStepLogging(input, () => getLeadStats(input));
 }

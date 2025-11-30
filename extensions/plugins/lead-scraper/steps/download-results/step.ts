@@ -96,5 +96,5 @@ export async function downloadResultsStep(
   input: DownloadResultsInput
 ): Promise<DownloadResultsResult> {
   "use step";
-  return withStepLogging(input, () => downloadResults(input));
+  return await withStepLogging(input, () => downloadResults(input));
 }

@@ -1,6 +1,7 @@
-export async function testGCP(
-  credentials: Record<string, string>
-): Promise<{ success: boolean; error?: string }> {
+export function testGCP(credentials: Record<string, string>): {
+  success: boolean;
+  error?: string;
+} {
   const { GCP_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS_JSON } = credentials;
 
   if (!GCP_PROJECT_ID) {
