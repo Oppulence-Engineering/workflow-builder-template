@@ -26,43 +26,43 @@ export type StepImporter = {
  */
 export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
   "ai-gateway:generate-text": {
-    importer: () => import("@/plugins/ai-gateway/steps/generate-text/step"),
+    importer: () => import("@/plugins/ai-gateway/steps/generate-text"),
     stepFunction: "generateTextStep",
   },
   "ai-gateway:generate-image": {
-    importer: () => import("@/plugins/ai-gateway/steps/generate-image/step"),
+    importer: () => import("@/plugins/ai-gateway/steps/generate-image"),
     stepFunction: "generateImageStep",
   },
   "firecrawl:scrape": {
-    importer: () => import("@/plugins/firecrawl/steps/scrape/step"),
+    importer: () => import("@/plugins/firecrawl/steps/scrape"),
     stepFunction: "firecrawlScrapeStep",
   },
   "firecrawl:search": {
-    importer: () => import("@/plugins/firecrawl/steps/search/step"),
+    importer: () => import("@/plugins/firecrawl/steps/search"),
     stepFunction: "firecrawlSearchStep",
   },
   "linear:create-ticket": {
-    importer: () => import("@/plugins/linear/steps/create-ticket/step"),
+    importer: () => import("@/plugins/linear/steps/create-ticket"),
     stepFunction: "createTicketStep",
   },
   "linear:find-issues": {
-    importer: () => import("@/plugins/linear/steps/find-issues/step"),
+    importer: () => import("@/plugins/linear/steps/find-issues"),
     stepFunction: "findIssuesStep",
   },
   "resend:send-email": {
-    importer: () => import("@/plugins/resend/steps/send-email/step"),
+    importer: () => import("@/plugins/resend/steps/send-email"),
     stepFunction: "sendEmailStep",
   },
   "slack:send-message": {
-    importer: () => import("@/plugins/slack/steps/send-slack-message/step"),
+    importer: () => import("@/plugins/slack/steps/send-slack-message"),
     stepFunction: "sendSlackMessageStep",
   },
   "v0:create-chat": {
-    importer: () => import("@/plugins/v0/steps/create-chat/step"),
+    importer: () => import("@/plugins/v0/steps/create-chat"),
     stepFunction: "createChatStep",
   },
   "v0:send-message": {
-    importer: () => import("@/plugins/v0/steps/send-message/step"),
+    importer: () => import("@/plugins/v0/steps/send-message"),
     stepFunction: "sendMessageStep",
   },
   "aws:s3-upload": {

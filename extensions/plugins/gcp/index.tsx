@@ -10,10 +10,7 @@ const gcpPlugin: IntegrationPlugin = {
   label: "Google Cloud",
   description: "Google Cloud Platform services",
 
-  icon: {
-    type: "image",
-    value: "/integrations/gcp.svg",
-  },
+  icon: Cloud,
 
   settingsComponent: GCPSettings,
 

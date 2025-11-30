@@ -10,10 +10,7 @@ const mongodbPlugin: IntegrationPlugin = {
   label: "MongoDB",
   description: "MongoDB document database",
 
-  icon: {
-    type: "image",
-    value: "/integrations/mongodb.svg",
-  },
+  icon: Database,
 
   settingsComponent: MongoDBSettings,
 

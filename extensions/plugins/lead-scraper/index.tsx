@@ -18,11 +18,7 @@ const leadScraperPlugin: IntegrationPlugin = {
   label: "Lead Scraper",
   description: "Lead scraping and search integration",
 
-  icon: {
-    type: "lucide",
-    value: "Search",
-    svgComponent: Search,
-  },
+  icon: Search,
 
   settingsComponent: LeadScraperSettings,
 

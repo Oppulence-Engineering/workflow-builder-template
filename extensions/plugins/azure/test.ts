@@ -1,30 +1,30 @@
-export function testAzure(credentials: Record<string, string>): {
+export function testAzure(credentials: Record<string, string>): Promise<{
   success: boolean;
   error?: string;
-} {
+}> {
   const { AZURE_STORAGE_CONNECTION_STRING, AZURE_CONTAINER } = credentials;
 
   if (!AZURE_STORAGE_CONNECTION_STRING) {
-    return {
+    return Promise.resolve({
       success: false,
       error: "Missing Azure Storage connection string",
-    };
+    });
   }
 
   if (!AZURE_CONTAINER) {
-    return {
+    return Promise.resolve({
       success: false,
       error: "Missing container name",
-    };
+    });
   }
 
   try {
     // Validate connection string format
     if (!AZURE_STORAGE_CONNECTION_STRING.includes("AccountName=")) {
-      return {
+      return Promise.resolve({
         success: false,
         error: "Invalid connection string: missing AccountName",
-      };
+      });
     }
 
     if (
@@ -33,11 +33,11 @@ export function testAzure(credentials: Record<string, string>): {
         AZURE_STORAGE_CONNECTION_STRING.includes("SharedAccessSignature=")
       )
     ) {
-      return {
+      return Promise.resolve({
         success: false,
         error:
           "Invalid connection string: missing AccountKey or SharedAccessSignature",
-      };
+      });
     }
 
     // In production, use @azure/storage-blob
@@ -46,12 +46,12 @@ export function testAzure(credentials: Record<string, string>): {
     // const containerClient = blobService.getContainerClient(AZURE_CONTAINER);
     // await containerClient.exists();
 
-    return { success: true };
+    return Promise.resolve({ success: true });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error:
         error instanceof Error ? error.message : "Invalid connection string",
-    };
+    });
   }
 }

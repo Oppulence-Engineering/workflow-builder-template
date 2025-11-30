@@ -220,10 +220,11 @@ function getBrokenTemplateReferences(
         nodeId: node.id,
         nodeLabel: node.data.label || action?.label || "Unnamed Step",
         brokenReferences: brokenRefs.map((ref) => {
-          // Look up human-readable field label
-          const configField = action?.configFields.find(
-            (f) => f.key === ref.field
-          );
+          // Look up human-readable field label (only works with declarative config fields)
+          const configFields = action?.configFields;
+          const configField = Array.isArray(configFields)
+            ? configFields.find((f) => f.key === ref.field)
+            : undefined;
           return {
             fieldKey: ref.field,
             fieldLabel: configField?.label || ref.field,
@@ -286,6 +287,11 @@ function getNodeMissingFields(
 
   const action = findActionById(actionType);
   if (!action) {
+    return null;
+  }
+
+  // Skip validation for React component config fields (extension plugins)
+  if (!Array.isArray(action.configFields)) {
     return null;
   }
 

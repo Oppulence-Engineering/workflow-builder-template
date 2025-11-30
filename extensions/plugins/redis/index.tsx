@@ -10,10 +10,7 @@ const redisPlugin: IntegrationPlugin = {
   label: "Redis",
   description: "Redis cache and key-value store",
 
-  icon: {
-    type: "image",
-    value: "/integrations/redis.svg",
-  },
+  icon: Database,
 
   settingsComponent: RedisSettings,
 

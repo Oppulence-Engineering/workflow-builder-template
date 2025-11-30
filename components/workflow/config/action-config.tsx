@@ -397,15 +397,23 @@ export function ActionConfig({
         />
       )}
 
-      {/* Plugin actions - declarative config fields */}
-      {pluginAction && !SYSTEM_ACTION_IDS.includes(actionType) && (
-        <ActionConfigRenderer
-          config={config}
-          disabled={disabled}
-          fields={pluginAction.configFields}
-          onUpdateConfig={onUpdateConfig}
-        />
-      )}
+      {/* Plugin actions - declarative config fields or custom component */}
+      {pluginAction &&
+        !SYSTEM_ACTION_IDS.includes(actionType) &&
+        (Array.isArray(pluginAction.configFields) ? (
+          <ActionConfigRenderer
+            config={config}
+            disabled={disabled}
+            fields={pluginAction.configFields}
+            onUpdateConfig={onUpdateConfig}
+          />
+        ) : (
+          <pluginAction.configFields
+            config={config}
+            disabled={disabled}
+            onUpdateConfig={onUpdateConfig}
+          />
+        ))}
     </>
   );
 }

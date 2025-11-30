@@ -12,10 +12,7 @@ const awsPlugin: IntegrationPlugin = {
   label: "AWS",
   description: "Amazon Web Services integration",
 
-  icon: {
-    type: "image",
-    value: "/integrations/aws.svg",
-  },
+  icon: Cloud,
 
   settingsComponent: AWSSettings,
 

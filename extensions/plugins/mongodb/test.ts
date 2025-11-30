@@ -1,21 +1,21 @@
-export function testMongoDB(credentials: Record<string, string>): {
+export function testMongoDB(credentials: Record<string, string>): Promise<{
   success: boolean;
   error?: string;
-} {
+}> {
   const { MONGODB_URI, MONGODB_DB } = credentials;
 
   if (!MONGODB_URI) {
-    return {
+    return Promise.resolve({
       success: false,
       error: "Missing MongoDB connection string",
-    };
+    });
   }
 
   if (!MONGODB_DB) {
-    return {
+    return Promise.resolve({
       success: false,
       error: "Missing database name",
-    };
+    });
   }
 
   try {
@@ -29,17 +29,17 @@ export function testMongoDB(credentials: Record<string, string>): {
     // Validate URL format
     const url = new URL(MONGODB_URI);
     if (url.protocol !== "mongodb:" && url.protocol !== "mongodb+srv:") {
-      return {
+      return Promise.resolve({
         success: false,
         error: "Invalid MongoDB URI protocol",
-      };
+      });
     }
 
-    return { success: true };
+    return Promise.resolve({ success: true });
   } catch (error) {
-    return {
+    return Promise.resolve({
       success: false,
       error: error instanceof Error ? error.message : "Invalid MongoDB URI",
-    };
+    });
   }
 }

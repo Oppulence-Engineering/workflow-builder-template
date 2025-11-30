@@ -10,10 +10,7 @@ const azurePlugin: IntegrationPlugin = {
   label: "Azure",
   description: "Microsoft Azure cloud services",
 
-  icon: {
-    type: "image",
-    value: "/integrations/azure.svg",
-  },
+  icon: Cloud,
 
   settingsComponent: AzureSettings,
 

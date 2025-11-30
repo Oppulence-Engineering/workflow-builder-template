@@ -360,6 +360,8 @@ async function generateStepRegistry(
 
   // Generate the step importer map with static imports
   // Include both namespaced IDs and legacy label-based IDs for backward compatibility
+  // Note: Core plugins have steps directly in steps/ folder (e.g., steps/send-email.ts)
+  // Extension plugins have steps in subdirectories (e.g., steps/s3-upload/step.ts)
   const importerEntries = stepEntries
     .map(
       ({
@@ -372,7 +374,7 @@ async function generateStepRegistry(
         const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
         const importPath = isExtension
           ? `@/extensions/plugins/${integration}/steps/${stepImportPath}/step`
-          : `@/plugins/${integration}/steps/${stepImportPath}/step`;
+          : `@/plugins/${integration}/steps/${stepImportPath}`;
         return `  ${key}: {
     importer: () => import("${importPath}"),
     stepFunction: "${stepFunction}",
