@@ -1,3 +1,13 @@
+# [1.3.0](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.3...v1.3.0) (2025-12-02)
+
+
+### Features
+
+* add optional email fields to resend plugin ([#85](https://github.com/Oppulence-Engineering/workflow-builder-template/issues/85)) ([ca57e2a](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/ca57e2ade1d1996937bc77987ff3c0b990ac36ed))
+* Add patch-upstream script for post-merge automation ([d1de0c6](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/d1de0c6c9c49a934ed4ad5050bf9050ec8881a59))
+* add Superagent Guard and Redact plugin ([#92](https://github.com/Oppulence-Engineering/workflow-builder-template/issues/92)) ([a64e50e](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/a64e50e0cbfce8844c7bfe825f54b27115f0b440))
+* use plugin test functions dynamically, delete old icons, update docs ([#95](https://github.com/Oppulence-Engineering/workflow-builder-template/issues/95)) ([6ce477b](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/6ce477bd406d00aefac5b53e0b56dbd89cf2e66c))
+
 ## [1.2.3](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.2...v1.2.3) (2025-12-02)
 
 
