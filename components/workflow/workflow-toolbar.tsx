@@ -84,7 +84,11 @@ import {
   type WorkflowEdge,
   type WorkflowNode,
 } from "@/lib/workflow-store";
-import { findActionById, getIntegrationLabels } from "@/plugins";
+import {
+  findActionById,
+  flattenConfigFields,
+  getIntegrationLabels,
+} from "@/plugins";
 import { Panel } from "../ai-elements/panel";
 import { DeployButton } from "../deploy-button";
 import { GitHubStarsButton } from "../github-stars-button";
@@ -215,16 +219,14 @@ function getBrokenTemplateReferences(
       // Get action for label lookups
       const actionType = config.actionType as string | undefined;
       const action = actionType ? findActionById(actionType) : undefined;
+      const flatFields = action ? flattenConfigFields(action.configFields) : [];
 
       brokenByNode.push({
         nodeId: node.id,
         nodeLabel: node.data.label || action?.label || "Unnamed Step",
         brokenReferences: brokenRefs.map((ref) => {
-          // Look up human-readable field label (only works with declarative config fields)
-          const configFields = action?.configFields;
-          const configField = Array.isArray(configFields)
-            ? configFields.find((f) => f.key === ref.field)
-            : undefined;
+          // Look up human-readable field label
+          const configField = flatFields.find((f) => f.key === ref.field);
           return {
             fieldKey: ref.field,
             fieldLabel: configField?.label || ref.field,
@@ -290,12 +292,10 @@ function getNodeMissingFields(
     return null;
   }
 
-  // Skip validation for React component config fields (extension plugins)
-  if (!Array.isArray(action.configFields)) {
-    return null;
-  }
+  // Flatten grouped fields to check all required fields
+  const flatFields = flattenConfigFields(action.configFields);
 
-  const missingFields = action.configFields
+  const missingFields = flatFields
     .filter(
       (field) =>
         field.required &&

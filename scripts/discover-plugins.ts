@@ -7,6 +7,9 @@
  * the plugins/index.ts file with imports. Also updates the README.md with
  * the current list of available actions.
  *
+ * Additionally generates codegen templates from step files that have
+ * a stepHandler function.
+ *
  * Run this script:
  * - Manually: pnpm discover-plugins
  * - Automatically: Before build (in package.json)
@@ -21,76 +24,47 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import ts from "typescript";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
-const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
 const OUTPUT_FILE = join(PLUGINS_DIR, "index.ts");
 const TYPES_FILE = join(process.cwd(), "lib", "types", "integration.ts");
 const STEP_REGISTRY_FILE = join(process.cwd(), "lib", "step-registry.ts");
+const CODEGEN_REGISTRY_FILE = join(process.cwd(), "lib", "codegen-registry.ts");
 const README_FILE = join(process.cwd(), "README.md");
 const PLUGINS_MARKER_REGEX =
   /<!-- PLUGINS:START[^>]*-->[\s\S]*?<!-- PLUGINS:END -->/;
 
-// Regex to validate JavaScript identifiers
-const VALID_IDENTIFIER_REGEX = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
-
-/**
- * Check if a string is a valid JavaScript identifier
- */
-function isValidIdentifier(str: string): boolean {
-  return VALID_IDENTIFIER_REGEX.test(str);
-}
-
-/**
- * Legacy action type mappings for backward compatibility
- * Maps old label-based action types to new namespaced IDs
- */
-const LEGACY_ACTION_MAPPINGS: Record<string, string> = {
-  "Send Email": "resend:send-email",
-  "Send Slack Message": "slack:send-message",
-  "Create Linear Ticket": "linear:create-ticket",
-  "Scrape Website": "firecrawl:scrape",
-  "Search Web": "firecrawl:search",
-  "Generate Text": "ai-gateway:generate-text",
-  "Generate Image": "ai-gateway:generate-image",
-  "Generate with v0": "v0:generate",
-};
-
-/**
- * Convert a string to kebab-case
- */
-function toKebabCase(str: string): string {
-  return str
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/\s+/g, "-")
-    .toLowerCase();
-}
-
-/**
- * Compute a namespaced action ID from integration type and action slug/id
- * Uses slug if available, otherwise converts id to kebab-case
- */
-function computeActionId(
-  integrationType: string,
-  actionSlug: string | undefined,
-  actionId?: string
-): string {
-  const slug = actionSlug || (actionId ? toKebabCase(actionId) : "unknown");
-  return `${integrationType}:${slug}`;
-}
-
 // System integrations that don't have plugins
 const SYSTEM_INTEGRATION_TYPES = ["database"] as const;
 
-/**
- * Discover plugin directories in a given path
- */
-function discoverPluginsInDir(dir: string): string[] {
-  if (!existsSync(dir)) {
-    return [];
-  }
+// Regex patterns for codegen template generation
+const LEADING_WHITESPACE_PATTERN = /^\s*/;
 
-  const entries = readdirSync(dir);
+/**
+ * Format TypeScript code using Prettier
+ */
+async function formatCode(code: string): Promise<string> {
+  try {
+    const prettier = await import("prettier");
+    return await prettier.format(code, { parser: "typescript" });
+  } catch (error) {
+    console.warn("   Warning: Failed to format generated code:", error);
+    return code;
+  }
+}
+
+// Track generated codegen templates
+const generatedCodegenTemplates = new Map<
+  string,
+  { template: string; integrationType: string }
+>();
+
+/**
+ * Discover all plugin directories
+ */
+function discoverPlugins(): string[] {
+  const entries = readdirSync(PLUGINS_DIR);
 
   const plugins = entries.filter((entry) => {
     // Skip special directories and files
@@ -98,14 +72,13 @@ function discoverPluginsInDir(dir: string): string[] {
       entry.startsWith("_") ||
       entry.startsWith(".") ||
       entry === "index.ts" ||
-      entry === "registry.ts" ||
-      entry === "types.ts"
+      entry === "registry.ts"
     ) {
       return false;
     }
 
     // Only include directories
-    const fullPath = join(dir, entry);
+    const fullPath = join(PLUGINS_DIR, entry);
     try {
       return statSync(fullPath).isDirectory();
     } catch {
@@ -117,32 +90,10 @@ function discoverPluginsInDir(dir: string): string[] {
 }
 
 /**
- * Discover all plugin directories (core + extensions)
- */
-function discoverPlugins(): string[] {
-  return discoverPluginsInDir(PLUGINS_DIR);
-}
-
-/**
- * Discover extension plugin directories
- */
-function discoverExtensionPlugins(): string[] {
-  return discoverPluginsInDir(EXTENSIONS_PLUGINS_DIR);
-}
-
-/**
  * Generate the plugins/index.ts file
  */
-function generateIndexFile(
-  plugins: string[],
-  extensionPlugins: string[]
-): void {
+function generateIndexFile(plugins: string[]): void {
   const imports = plugins.map((plugin) => `import "./${plugin}";`).join("\n");
-  const extensionImports = extensionPlugins
-    .map((plugin) => `import "@/extensions/plugins/${plugin}";`)
-    .join("\n");
-
-  const allPlugins = [...plugins, ...extensionPlugins.map((p) => `ext:${p}`)];
 
   const content = `/**
  * Plugins Index (Auto-Generated)
@@ -159,20 +110,25 @@ function generateIndexFile(
  * 1. Delete the plugin directory
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  *
- * Discovered plugins: ${allPlugins.join(", ") || "none"}
+ * Discovered plugins: ${plugins.join(", ") || "none"}
  */
 
 ${imports || "// No plugins discovered"}
 
-// Fork-specific extension plugins
-${extensionImports || "// No extension plugins discovered"}
-
-export type { IntegrationPlugin, PluginAction, ActionWithFullId } from "./registry";
+export type {
+  ActionConfigField,
+  ActionConfigFieldBase,
+  ActionConfigFieldGroup,
+  ActionWithFullId,
+  IntegrationPlugin,
+  PluginAction,
+} from "./registry";
 
 // Export the registry utilities
 export {
   computeActionId,
   findActionById,
+  flattenConfigFields,
   generateAIActionPrompts,
   getActionsByCategory,
   getAllActions,
@@ -186,6 +142,7 @@ export {
   getIntegrationTypes,
   getPluginEnvVars,
   getSortedIntegrationTypes,
+  isFieldGroup,
   parseActionId,
   registerIntegration,
 } from "./registry";
@@ -287,14 +244,358 @@ export type IntegrationConfig = Record<string, string | undefined>;
   );
 }
 
+// ============================================================================
+// Codegen Template Generation
+// ============================================================================
+
+/** Analysis result type for step file parsing */
+type StepFileAnalysis = {
+  hasExportCore: boolean;
+  integrationType: string | null;
+  coreFunction: {
+    name: string;
+    params: string;
+    returnType: string;
+    body: string;
+  } | null;
+  inputTypes: string[];
+  imports: string[];
+};
+
+/** Create empty analysis result */
+function createEmptyAnalysis(): StepFileAnalysis {
+  return {
+    hasExportCore: false,
+    integrationType: null,
+    coreFunction: null,
+    inputTypes: [],
+    imports: [],
+  };
+}
+
+/** Process exported variable declarations */
+function processExportedVariable(
+  decl: ts.VariableDeclaration,
+  result: StepFileAnalysis
+): void {
+  if (!ts.isIdentifier(decl.name)) {
+    return;
+  }
+
+  const name = decl.name.text;
+  const init = decl.initializer;
+
+  if (name === "_integrationType" && init && ts.isStringLiteral(init)) {
+    result.integrationType = init.text;
+  }
+}
+
+/** Check if a type name should be included in exports */
+function shouldIncludeType(typeName: string): boolean {
+  return (
+    typeName.endsWith("Result") ||
+    typeName.endsWith("Credentials") ||
+    typeName.endsWith("CoreInput")
+  );
+}
+
+/** Check if an import should be included in exports */
+function shouldIncludeImport(moduleSpec: string, importText: string): boolean {
+  // Skip internal imports
+  if (moduleSpec.startsWith("@/") || moduleSpec.startsWith(".")) {
+    return false;
+  }
+  // Skip server-only import
+  if (importText.includes("server-only")) {
+    return false;
+  }
+  return true;
+}
+
+/** Extract function info from a function declaration */
+function extractFunctionInfo(
+  node: ts.FunctionDeclaration,
+  sourceCode: string
+): StepFileAnalysis["coreFunction"] {
+  if (!(node.name && node.body)) {
+    return null;
+  }
+
+  const params = node.parameters
+    .map((p) => sourceCode.slice(p.pos, p.end).trim())
+    .join(", ");
+
+  const returnType = node.type
+    ? sourceCode.slice(node.type.pos, node.type.end).trim()
+    : "Promise<unknown>";
+
+  const body = sourceCode.slice(node.body.pos, node.body.end).trim();
+
+  return {
+    name: node.name.text,
+    params,
+    returnType,
+    body,
+  };
+}
+
+/** Process variable statement node */
+function processVariableStatement(
+  node: ts.VariableStatement,
+  result: StepFileAnalysis
+): void {
+  const isExported = node.modifiers?.some(
+    (m) => m.kind === ts.SyntaxKind.ExportKeyword
+  );
+  if (!isExported) {
+    return;
+  }
+
+  for (const decl of node.declarationList.declarations) {
+    processExportedVariable(decl, result);
+  }
+}
+
+/** Process type alias node */
+function processTypeAlias(
+  node: ts.TypeAliasDeclaration,
+  sourceCode: string,
+  result: StepFileAnalysis
+): void {
+  if (shouldIncludeType(node.name.text)) {
+    result.inputTypes.push(sourceCode.slice(node.pos, node.end).trim());
+  }
+}
+
+/** Process import declaration node */
+function processImportDeclaration(
+  node: ts.ImportDeclaration,
+  sourceCode: string,
+  result: StepFileAnalysis
+): void {
+  const spec = node.moduleSpecifier;
+  if (!ts.isStringLiteral(spec)) {
+    return;
+  }
+  const importText = sourceCode.slice(node.pos, node.end).trim();
+  if (shouldIncludeImport(spec.text, importText)) {
+    result.imports.push(importText);
+  }
+}
+
+/** Process a single AST node for exports, types, and imports */
+function processNode(
+  node: ts.Node,
+  sourceCode: string,
+  result: StepFileAnalysis
+): void {
+  if (ts.isVariableStatement(node)) {
+    processVariableStatement(node, result);
+    return;
+  }
+
+  if (ts.isTypeAliasDeclaration(node)) {
+    processTypeAlias(node, sourceCode, result);
+    return;
+  }
+
+  if (ts.isImportDeclaration(node)) {
+    processImportDeclaration(node, sourceCode, result);
+    return;
+  }
+
+  // Check for stepHandler function (doesn't need to be exported)
+  if (ts.isFunctionDeclaration(node) && node.name?.text === "stepHandler") {
+    result.hasExportCore = true;
+    result.coreFunction = extractFunctionInfo(node, sourceCode);
+  }
+}
+
+/**
+ * Extract information about a step file's exports using TypeScript AST
+ */
+function analyzeStepFile(filePath: string): StepFileAnalysis {
+  const result = createEmptyAnalysis();
+
+  if (!existsSync(filePath)) {
+    return result;
+  }
+
+  const sourceCode = readFileSync(filePath, "utf-8");
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceCode,
+    ts.ScriptTarget.Latest,
+    true
+  );
+
+  // Single pass: find stepHandler function, types, and imports
+  ts.forEachChild(sourceFile, (node) => {
+    processNode(node, sourceCode, result);
+  });
+
+  return result;
+}
+
+/**
+ * Generate a codegen template from a step file's core function
+ */
+async function generateCodegenTemplate(
+  stepFilePath: string,
+  stepFunctionName: string
+): Promise<string | null> {
+  const analysis = analyzeStepFile(stepFilePath);
+
+  if (!(analysis.hasExportCore && analysis.coreFunction)) {
+    return null;
+  }
+
+  const { coreFunction, integrationType, inputTypes, imports } = analysis;
+
+  // Extract the inner body (remove outer braces)
+  let innerBody = coreFunction.body.trim();
+  if (innerBody.startsWith("{")) {
+    innerBody = innerBody.slice(1);
+  }
+  if (innerBody.endsWith("}")) {
+    innerBody = innerBody.slice(0, -1);
+  }
+  innerBody = innerBody.trim();
+
+  // Extract input type from first parameter
+  const inputType =
+    coreFunction.params
+      .split(",")[0]
+      .replace(LEADING_WHITESPACE_PATTERN, "")
+      .split(":")[1]
+      ?.trim() || "unknown";
+
+  // Build the raw template (formatter will fix indentation)
+  const rawTemplate = `${imports.join("\n")}
+import { fetchCredentials } from '@/lib/credential-fetcher';
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+${inputTypes.join("\n\n")}
+
+export async function ${stepFunctionName}(input: ${inputType}): ${coreFunction.returnType} {
+  "use step";
+  const credentials = await fetchCredentials("${integrationType || "unknown"}");
+${innerBody}
+}`;
+
+  // Format the generated code
+  return await formatCode(rawTemplate);
+}
+
+/**
+ * Process step files and generate codegen templates
+ */
+async function processStepFilesForCodegen(): Promise<void> {
+  const { getAllIntegrations, computeActionId } = await import(
+    "@/plugins/registry"
+  );
+  const integrations = getAllIntegrations();
+
+  for (const integration of integrations) {
+    for (const action of integration.actions) {
+      const stepFilePath = join(
+        PLUGINS_DIR,
+        integration.type,
+        "steps",
+        `${action.stepImportPath}.ts`
+      );
+
+      const template = await generateCodegenTemplate(
+        stepFilePath,
+        action.stepFunction
+      );
+
+      if (template) {
+        const actionId = computeActionId(integration.type, action.slug);
+        generatedCodegenTemplates.set(actionId, {
+          template,
+          integrationType: integration.type,
+        });
+        console.log(`   Generated codegen template for ${actionId}`);
+      }
+    }
+  }
+}
+
+/**
+ * Generate the lib/codegen-registry.ts file with auto-generated templates
+ */
+function generateCodegenRegistry(): void {
+  const entries = Array.from(generatedCodegenTemplates.entries());
+
+  if (entries.length === 0) {
+    console.log("No codegen templates generated");
+    return;
+  }
+
+  // Generate template string literals
+  const templateEntries = entries
+    .map(([actionId, { template }]) => {
+      // Escape backticks and ${} in the template for safe embedding
+      const escapedTemplate = template
+        .replace(/\\/g, "\\\\")
+        .replace(/`/g, "\\`")
+        .replace(/\$\{/g, "\\${");
+      return `  "${actionId}": \`${escapedTemplate}\`,`;
+    })
+    .join("\n\n");
+
+  const content = `/**
+ * Codegen Registry (Auto-Generated)
+ *
+ * This file is automatically generated by scripts/discover-plugins.ts
+ * DO NOT EDIT MANUALLY - your changes will be overwritten!
+ *
+ * Contains auto-generated codegen templates for steps with stepHandler.
+ * These templates are used when exporting workflows to standalone projects.
+ *
+ * Generated templates: ${entries.length}
+ */
+
+/**
+ * Auto-generated codegen templates
+ * Maps action IDs to their generated export code templates
+ */
+export const AUTO_GENERATED_TEMPLATES: Record<string, string> = {
+${templateEntries}
+};
+
+/**
+ * Get the auto-generated codegen template for an action
+ */
+export function getAutoGeneratedTemplate(actionId: string): string | undefined {
+  return AUTO_GENERATED_TEMPLATES[actionId];
+}
+`;
+
+  writeFileSync(CODEGEN_REGISTRY_FILE, content, "utf-8");
+  console.log(
+    `Generated lib/codegen-registry.ts with ${entries.length} template(s)`
+  );
+}
+
+// ============================================================================
+// Step Registry Generation
+// ============================================================================
+
 /**
  * Generate the lib/step-registry.ts file with step import functions
  * This enables dynamic imports that are statically analyzable by the bundler
  */
-async function generateStepRegistry(
-  extensionPluginsList: string[]
-): Promise<void> {
-  const { getAllIntegrations } = await import("@/plugins/registry");
+async function generateStepRegistry(): Promise<void> {
+  const { getAllIntegrations, computeActionId } = await import(
+    "@/plugins/registry"
+  );
+  const { LEGACY_ACTION_MAPPINGS } = await import("@/plugins/legacy-mappings");
   const integrations = getAllIntegrations();
 
   // Collect all action -> step mappings
@@ -304,27 +605,17 @@ async function generateStepRegistry(
     integration: string;
     stepImportPath: string;
     stepFunction: string;
-    isExtension: boolean;
   }> = [];
 
   for (const integration of integrations) {
-    // Check if this is an extension plugin
-    const isExtension = extensionPluginsList.includes(integration.type);
-
     for (const action of integration.actions) {
-      // Use slug if available, otherwise use id (for extension plugins)
-      const fullActionId = computeActionId(
-        integration.type,
-        action.slug,
-        action.id
-      );
+      const fullActionId = computeActionId(integration.type, action.slug);
       stepEntries.push({
         actionId: fullActionId,
         label: action.label,
         integration: integration.type,
         stepImportPath: action.stepImportPath,
         stepFunction: action.stepFunction,
-        isExtension,
       });
     }
   }
@@ -340,46 +631,46 @@ async function generateStepRegistry(
     legacyLabelsForAction[actionId].push(legacyLabel);
   }
 
-  // Generate label entries for action ID to label mapping
-  const labelEntries = stepEntries
-    .map(({ actionId, label }) => {
-      const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
-      return `  ${key}: "${label}",`;
-    })
-    .join("\n");
-
-  // Generate legacy label entries for backward compatibility
-  const legacyLabelEntries = Object.entries(LEGACY_ACTION_MAPPINGS)
-    .map(([legacyLabel, actionId]) => {
-      const entry = stepEntries.find((e) => e.actionId === actionId);
-      const label = entry?.label || legacyLabel;
-      return `  "${legacyLabel}": "${label}",`;
-    })
-    .join("\n");
-
   // Generate the step importer map with static imports
   // Include both namespaced IDs and legacy label-based IDs for backward compatibility
-  // Note: Core plugins have steps directly in steps/ folder (e.g., steps/send-email.ts)
-  // Extension plugins have steps in subdirectories (e.g., steps/s3-upload/step.ts)
   const importerEntries = stepEntries
-    .map(
-      ({
-        actionId,
-        integration,
-        stepImportPath,
-        stepFunction,
-        isExtension,
-      }) => {
-        const key = isValidIdentifier(actionId) ? actionId : `"${actionId}"`;
-        const importPath = isExtension
-          ? `@/extensions/plugins/${integration}/steps/${stepImportPath}/step`
-          : `@/plugins/${integration}/steps/${stepImportPath}`;
-        return `  ${key}: {
-    importer: () => import("${importPath}"),
+    .flatMap(({ actionId, integration, stepImportPath, stepFunction }) => {
+      const entries = [
+        `  "${actionId}": {
+    importer: () => import("@/plugins/${integration}/steps/${stepImportPath}"),
     stepFunction: "${stepFunction}",
-  },`;
+  },`,
+      ];
+      // Add entries for all legacy labels that map to this action
+      const legacyLabels = legacyLabelsForAction[actionId] || [];
+      for (const legacyLabel of legacyLabels) {
+        entries.push(
+          `  "${legacyLabel}": {
+    importer: () => import("@/plugins/${integration}/steps/${stepImportPath}"),
+    stepFunction: "${stepFunction}",
+  },`
+        );
       }
-    )
+      return entries;
+    })
+    .join("\n");
+
+  // Generate the action labels map for displaying human-readable names
+  const labelEntries = stepEntries
+    .map(({ actionId, label }) => `  "${actionId}": "${label}",`)
+    .join("\n");
+
+  // Also add legacy label mappings to the labels map
+  const legacyLabelEntries = Object.entries(legacyLabelsForAction)
+    .flatMap(([actionId, legacyLabels]) => {
+      const entry = stepEntries.find((e) => e.actionId === actionId);
+      if (!entry) {
+        return [];
+      }
+      return legacyLabels.map(
+        (legacyLabel) => `  "${legacyLabel}": "${entry.label}",`
+      );
+    })
     .join("\n");
 
   const content = `/**
@@ -396,8 +687,12 @@ async function generateStepRegistry(
 
 import "server-only";
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic step module types
-type StepModule = Record<string, (input: any) => Promise<any>>;
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic step module types - step functions take any input
+export type StepFunction = (input: any) => Promise<any>;
+
+// Step modules may contain the step function plus other exports (types, constants, etc.)
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic module with mixed exports
+export type StepModule = Record<string, any>;
 
 export type StepImporter = {
   importer: () => Promise<StepModule>;
@@ -449,28 +744,18 @@ async function main(): Promise<void> {
   console.log("Discovering plugins...");
 
   const plugins = discoverPlugins();
-  const extensionPlugins = discoverExtensionPlugins();
 
   if (plugins.length === 0) {
     console.log("No plugins found in plugins/ directory");
   } else {
-    console.log(`✅ Found ${plugins.length} core plugin(s):`);
+    console.log(`Found ${plugins.length} plugin(s):`);
     for (const plugin of plugins) {
       console.log(`   - ${plugin}`);
     }
   }
 
-  if (extensionPlugins.length === 0) {
-    console.log("ℹ️  No extension plugins found in extensions/plugins/");
-  } else {
-    console.log(`✅ Found ${extensionPlugins.length} extension plugin(s):`);
-    for (const plugin of extensionPlugins) {
-      console.log(`   - ${plugin} (extension)`);
-    }
-  }
-
-  console.log("\n📝 Generating plugins/index.ts...");
-  generateIndexFile(plugins, extensionPlugins);
+  console.log("\nGenerating plugins/index.ts...");
+  generateIndexFile(plugins);
 
   console.log("Updating README.md...");
   await updateReadme();
@@ -478,8 +763,14 @@ async function main(): Promise<void> {
   console.log("Generating lib/types/integration.ts...");
   await generateTypesFile();
 
-  console.log("🔧 Generating lib/step-registry.ts...");
-  await generateStepRegistry(extensionPlugins);
+  console.log("Generating lib/step-registry.ts...");
+  await generateStepRegistry();
+
+  console.log("\nProcessing step files for codegen templates...");
+  await processStepFilesForCodegen();
+
+  console.log("Generating lib/codegen-registry.ts...");
+  generateCodegenRegistry();
 
   console.log("Done! Plugin registry updated.\n");
 }

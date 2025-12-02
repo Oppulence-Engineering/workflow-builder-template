@@ -13,7 +13,7 @@
  * 1. Delete the plugin directory
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  *
- * Discovered plugins: ai-gateway, firecrawl, linear, resend, slack, v0, ext:aws, ext:azure, ext:gcp, ext:lead-scraper, ext:mongodb, ext:redis
+ * Discovered plugins: ai-gateway, firecrawl, linear, resend, slack, superagent, v0
  */
 
 import "./ai-gateway";
@@ -21,22 +21,23 @@ import "./firecrawl";
 import "./linear";
 import "./resend";
 import "./slack";
+import "./superagent";
 import "./v0";
 
-// Fork-specific extension plugins
-import "@/extensions/plugins/aws";
-import "@/extensions/plugins/azure";
-import "@/extensions/plugins/gcp";
-import "@/extensions/plugins/lead-scraper";
-import "@/extensions/plugins/mongodb";
-import "@/extensions/plugins/redis";
-
-export type { IntegrationPlugin, PluginAction, ActionWithFullId } from "./registry";
+export type {
+  ActionConfigField,
+  ActionConfigFieldBase,
+  ActionConfigFieldGroup,
+  ActionWithFullId,
+  IntegrationPlugin,
+  PluginAction,
+} from "./registry";
 
 // Export the registry utilities
 export {
   computeActionId,
   findActionById,
+  flattenConfigFields,
   generateAIActionPrompts,
   getActionsByCategory,
   getAllActions,
@@ -50,6 +51,7 @@ export {
   getIntegrationTypes,
   getPluginEnvVars,
   getSortedIntegrationTypes,
+  isFieldGroup,
   parseActionId,
   registerIntegration,
 } from "./registry";

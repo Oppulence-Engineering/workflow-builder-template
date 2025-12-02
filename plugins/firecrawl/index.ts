@@ -1,7 +1,5 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { scrapeCodegenTemplate } from "./codegen/scrape";
-import { searchCodegenTemplate } from "./codegen/search";
 import { FirecrawlIcon } from "./icon";
 
 const firecrawlPlugin: IntegrationPlugin = {
@@ -34,10 +32,6 @@ const firecrawlPlugin: IntegrationPlugin = {
     },
   },
 
-  dependencies: {
-    "@mendable/firecrawl-js": "^4.6.2",
-  },
-
   actions: [
     {
       slug: "scrape",
@@ -56,7 +50,6 @@ const firecrawlPlugin: IntegrationPlugin = {
           required: true,
         },
       ],
-      codegenTemplate: scrapeCodegenTemplate,
     },
     {
       slug: "search",
@@ -83,7 +76,6 @@ const firecrawlPlugin: IntegrationPlugin = {
           example: "10",
         },
       ],
-      codegenTemplate: searchCodegenTemplate,
     },
   ],
 };

@@ -158,6 +158,7 @@ Visit [http://localhost:8000](http://localhost:8000) to get started.
 - **Linear**: Create Ticket, Find Issues
 - **Resend**: Send Email
 - **Slack**: Send Slack Message
+- **Superagent**: Guard, Redact
 - **v0**: Create Chat, Send Message
 - **AWS**: S3 Upload, Lambda Invoke
 - **Azure**: Blob Upload

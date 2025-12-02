@@ -11,10 +11,10 @@ export type SelectOption = {
 };
 
 /**
- * Action Config Field
+ * Base Action Config Field
  * Declarative definition of a config field for an action
  */
-export type ActionConfigField = {
+export type ActionConfigFieldBase = {
   // Unique key for this field in the config object
   key: string;
 
@@ -59,16 +59,37 @@ export type ActionConfigField = {
 };
 
 /**
+ * Config Field Group
+ * Groups related fields together in a collapsible section
+ */
+export type ActionConfigFieldGroup = {
+  // Human-readable label for the group
+  label: string;
+
+  // Field type (always "group" for groups)
+  type: "group";
+
+  // Nested fields within this group
+  fields: ActionConfigFieldBase[];
+
+  // Whether the group is expanded by default (defaults to false)
+  defaultExpanded?: boolean;
+};
+
+/**
+ * Action Config Field
+ * Can be either a regular field or a group of fields
+ */
+export type ActionConfigField = ActionConfigFieldBase | ActionConfigFieldGroup;
+
+/**
  * Action Definition
  * Describes a single action provided by a plugin
  */
 export type PluginAction = {
   // Unique slug for this action (e.g., "send-email")
   // Full action ID will be computed as `{integration}/{slug}` (e.g., "resend/send-email")
-  slug?: string;
-
-  // Alternative: id field for extension plugins (e.g., "S3 Upload")
-  id?: string;
+  slug: string;
 
   // Human-readable label (e.g., "Send Email")
   label: string;
@@ -79,19 +100,17 @@ export type PluginAction = {
   // Category for grouping in UI
   category: string;
 
-  // Optional icon for this specific action (overrides integration icon)
-  icon?: React.ComponentType<{ className?: string }>;
-
   // Step configuration
   stepFunction: string; // Name of the exported function in the step file
   stepImportPath: string; // Path to import from, relative to plugins/[plugin-name]/steps/
 
-  // Config fields for the action - can be declarative (ActionConfigField[]) or a React component
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  configFields: ActionConfigField[] | React.ComponentType<any>;
+  // Config fields for the action (declarative definition)
+  configFields: ActionConfigField[];
 
   // Code generation template (the actual template string, not a path)
-  codegenTemplate: string;
+  // Optional - if not provided, will fall back to auto-generated template
+  // from steps that export _exportCore
+  codegenTemplate?: string;
 };
 
 /**
@@ -130,17 +149,9 @@ export type IntegrationPlugin = {
     >;
   };
 
-  // NPM dependencies required by this plugin (package name -> version)
+  // Avoid using this field. Plugins should use fetch instead of SDK dependencies
+  // to reduce supply chain attack surface. Only use for codegen if absolutely necessary.
   dependencies?: Record<string, string>;
-
-  // Custom credential mapping function (optional - if not provided, formFields envVar mapping is used)
-  credentialMapping?: (
-    config: Record<string, unknown>
-  ) => Record<string, string>;
-
-  // Settings component for additional configuration UI
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settingsComponent?: React.ComponentType<any>;
 
   // Actions provided by this integration
   actions: PluginAction[];
@@ -169,14 +180,6 @@ export function computeActionId(
   actionSlug: string
 ): string {
   return `${integrationType}/${actionSlug}`;
-}
-
-/**
- * Get the action slug from a PluginAction (handles both slug and id fields)
- * Core plugins use slug, extension plugins may use id
- */
-function getActionSlug(action: PluginAction): string {
-  return action.slug || action.id || action.label;
 }
 
 /**
@@ -236,7 +239,7 @@ export function getAllActions(): ActionWithFullId[] {
     for (const action of plugin.actions) {
       actions.push({
         ...action,
-        id: computeActionId(plugin.type, getActionSlug(action)),
+        id: computeActionId(plugin.type, action.slug),
         integration: plugin.type,
       });
     }
@@ -258,7 +261,7 @@ export function getActionsByCategory(): Record<string, ActionWithFullId[]> {
       }
       categories[action.category].push({
         ...action,
-        id: computeActionId(plugin.type, getActionSlug(action)),
+        id: computeActionId(plugin.type, action.slug),
         integration: plugin.type,
       });
     }
@@ -283,10 +286,7 @@ export function findActionById(
   if (parsed) {
     const plugin = integrationRegistry.get(parsed.integration as IntegrationType);
     if (plugin) {
-      // Check both slug and id to support core and extension plugins
-      const action = plugin.actions.find(
-        (a) => getActionSlug(a) === parsed.slug
-      );
+      const action = plugin.actions.find((a) => a.slug === parsed.slug);
       if (action) {
         return {
           ...action,
@@ -310,7 +310,7 @@ export function findActionById(
     if (action) {
       return {
         ...action,
-        id: computeActionId(plugin.type, getActionSlug(action)),
+        id: computeActionId(plugin.type, action.slug),
         integration: plugin.type,
       };
     }
@@ -433,6 +433,35 @@ export function getCredentialMapping(
 }
 
 /**
+ * Type guard to check if a field is a group
+ */
+export function isFieldGroup(
+  field: ActionConfigField
+): field is ActionConfigFieldGroup {
+  return field.type === "group";
+}
+
+/**
+ * Flatten config fields, extracting fields from groups
+ * Useful for validation and AI prompt generation
+ */
+export function flattenConfigFields(
+  fields: ActionConfigField[]
+): ActionConfigFieldBase[] {
+  const result: ActionConfigFieldBase[] = [];
+
+  for (const field of fields) {
+    if (isFieldGroup(field)) {
+      result.push(...field.fields);
+    } else {
+      result.push(field);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Generate AI prompt section for all available actions
  * This dynamically builds the action types documentation for the AI
  */
@@ -441,31 +470,30 @@ export function generateAIActionPrompts(): string {
 
   for (const plugin of integrationRegistry.values()) {
     for (const action of plugin.actions) {
-      const fullId = computeActionId(plugin.type, getActionSlug(action));
+      const fullId = computeActionId(plugin.type, action.slug);
 
-      // Build example config from configFields
+      // Build example config from configFields (flatten groups)
       const exampleConfig: Record<string, string | number> = {
         actionType: fullId,
       };
 
-      // Only process declarative config fields (skip React component configs)
-      if (Array.isArray(action.configFields)) {
-        for (const field of action.configFields) {
-          // Skip conditional fields in the example
-          if (field.showWhen) continue;
+      const flatFields = flattenConfigFields(action.configFields);
 
-          // Use example, defaultValue, or a sensible default based on type
-          if (field.example !== undefined) {
-            exampleConfig[field.key] = field.example;
-          } else if (field.defaultValue !== undefined) {
-            exampleConfig[field.key] = field.defaultValue;
-          } else if (field.type === "number") {
-            exampleConfig[field.key] = 10;
-          } else if (field.type === "select" && field.options?.[0]) {
-            exampleConfig[field.key] = field.options[0].value;
-          } else {
-            exampleConfig[field.key] = `Your ${field.label.toLowerCase()}`;
-          }
+      for (const field of flatFields) {
+        // Skip conditional fields in the example
+        if (field.showWhen) continue;
+
+        // Use example, defaultValue, or a sensible default based on type
+        if (field.example !== undefined) {
+          exampleConfig[field.key] = field.example;
+        } else if (field.defaultValue !== undefined) {
+          exampleConfig[field.key] = field.defaultValue;
+        } else if (field.type === "number") {
+          exampleConfig[field.key] = 10;
+        } else if (field.type === "select" && field.options?.[0]) {
+          exampleConfig[field.key] = field.options[0].value;
+        } else {
+          exampleConfig[field.key] = `Your ${field.label.toLowerCase()}`;
         }
       }
 

@@ -1,7 +1,5 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { createTicketCodegenTemplate } from "./codegen/create-ticket";
-import { findIssuesCodegenTemplate } from "./codegen/find-issues";
 import { LinearIcon } from "./icon";
 
 const linearPlugin: IntegrationPlugin = {
@@ -44,10 +42,6 @@ const linearPlugin: IntegrationPlugin = {
     },
   },
 
-  dependencies: {
-    "@linear/sdk": "^63.2.0",
-  },
-
   actions: [
     {
       slug: "create-ticket",
@@ -88,7 +82,6 @@ const linearPlugin: IntegrationPlugin = {
           ],
         },
       ],
-      codegenTemplate: createTicketCodegenTemplate,
     },
     {
       slug: "find-issues",
@@ -132,7 +125,6 @@ const linearPlugin: IntegrationPlugin = {
           placeholder: "bug, feature, etc. or {{NodeName.label}}",
         },
       ],
-      codegenTemplate: findIssuesCodegenTemplate,
     },
   ],
 };

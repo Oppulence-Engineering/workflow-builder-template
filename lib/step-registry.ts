@@ -7,13 +7,17 @@
  * This registry enables dynamic step imports that are statically analyzable
  * by the bundler. Each action type maps to its step importer function.
  *
- * Generated entries: 21
+ * Generated entries: 12
  */
 
 import "server-only";
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic step module types
-type StepModule = Record<string, (input: any) => Promise<any>>;
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic step module types - step functions take any input
+export type StepFunction = (input: any) => Promise<any>;
+
+// Step modules may contain the step function plus other exports (types, constants, etc.)
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic module with mixed exports
+export type StepModule = Record<string, any>;
 
 export type StepImporter = {
   importer: () => Promise<StepModule>;
@@ -25,98 +29,93 @@ export type StepImporter = {
  * These imports are statically analyzable by the bundler
  */
 export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
-  "ai-gateway:generate-text": {
+  "ai-gateway/generate-text": {
     importer: () => import("@/plugins/ai-gateway/steps/generate-text"),
     stepFunction: "generateTextStep",
   },
-  "ai-gateway:generate-image": {
+  "Generate Text": {
+    importer: () => import("@/plugins/ai-gateway/steps/generate-text"),
+    stepFunction: "generateTextStep",
+  },
+  "ai-gateway/generate-image": {
     importer: () => import("@/plugins/ai-gateway/steps/generate-image"),
     stepFunction: "generateImageStep",
   },
-  "firecrawl:scrape": {
+  "Generate Image": {
+    importer: () => import("@/plugins/ai-gateway/steps/generate-image"),
+    stepFunction: "generateImageStep",
+  },
+  "firecrawl/scrape": {
     importer: () => import("@/plugins/firecrawl/steps/scrape"),
     stepFunction: "firecrawlScrapeStep",
   },
-  "firecrawl:search": {
+  Scrape: {
+    importer: () => import("@/plugins/firecrawl/steps/scrape"),
+    stepFunction: "firecrawlScrapeStep",
+  },
+  "firecrawl/search": {
     importer: () => import("@/plugins/firecrawl/steps/search"),
     stepFunction: "firecrawlSearchStep",
   },
-  "linear:create-ticket": {
+  Search: {
+    importer: () => import("@/plugins/firecrawl/steps/search"),
+    stepFunction: "firecrawlSearchStep",
+  },
+  "linear/create-ticket": {
     importer: () => import("@/plugins/linear/steps/create-ticket"),
     stepFunction: "createTicketStep",
   },
-  "linear:find-issues": {
+  "Create Ticket": {
+    importer: () => import("@/plugins/linear/steps/create-ticket"),
+    stepFunction: "createTicketStep",
+  },
+  "linear/find-issues": {
     importer: () => import("@/plugins/linear/steps/find-issues"),
     stepFunction: "findIssuesStep",
   },
-  "resend:send-email": {
+  "Find Issues": {
+    importer: () => import("@/plugins/linear/steps/find-issues"),
+    stepFunction: "findIssuesStep",
+  },
+  "resend/send-email": {
     importer: () => import("@/plugins/resend/steps/send-email"),
     stepFunction: "sendEmailStep",
   },
-  "slack:send-message": {
+  "Send Email": {
+    importer: () => import("@/plugins/resend/steps/send-email"),
+    stepFunction: "sendEmailStep",
+  },
+  "slack/send-message": {
     importer: () => import("@/plugins/slack/steps/send-slack-message"),
     stepFunction: "sendSlackMessageStep",
   },
-  "v0:create-chat": {
+  "Send Slack Message": {
+    importer: () => import("@/plugins/slack/steps/send-slack-message"),
+    stepFunction: "sendSlackMessageStep",
+  },
+  "superagent/guard": {
+    importer: () => import("@/plugins/superagent/steps/guard"),
+    stepFunction: "superagentGuardStep",
+  },
+  "superagent/redact": {
+    importer: () => import("@/plugins/superagent/steps/redact"),
+    stepFunction: "superagentRedactStep",
+  },
+  "v0/create-chat": {
     importer: () => import("@/plugins/v0/steps/create-chat"),
     stepFunction: "createChatStep",
   },
-  "v0:send-message": {
+  "Create Chat": {
+    importer: () => import("@/plugins/v0/steps/create-chat"),
+    stepFunction: "createChatStep",
+  },
+  "v0/send-message": {
     importer: () => import("@/plugins/v0/steps/send-message"),
     stepFunction: "sendMessageStep",
   },
-  "aws:s3-upload": {
-    importer: () => import("@/extensions/plugins/aws/steps/s3-upload/step"),
-    stepFunction: "s3UploadStep",
-  },
-  "aws:lambda-invoke": {
-    importer: () => import("@/extensions/plugins/aws/steps/lambda-invoke/step"),
-    stepFunction: "lambdaInvokeStep",
-  },
-  "azure:blob-upload": {
-    importer: () => import("@/extensions/plugins/azure/steps/blob-upload/step"),
-    stepFunction: "blobUploadStep",
-  },
-  "gcp:cloud-storage-upload": {
-    importer: () =>
-      import("@/extensions/plugins/gcp/steps/storage-upload/step"),
-    stepFunction: "storageUploadStep",
-  },
-  "lead-scraper:create-scraping-job": {
-    importer: () =>
-      import(
-        "@/extensions/plugins/lead-scraper/steps/create-scraping-job/step"
-      ),
-    stepFunction: "createScrapingJobStep",
-  },
-  "lead-scraper:get-scraping-job": {
-    importer: () =>
-      import("@/extensions/plugins/lead-scraper/steps/get-scraping-job/step"),
-    stepFunction: "getScrapingJobStep",
-  },
-  "lead-scraper:list-leads": {
-    importer: () =>
-      import("@/extensions/plugins/lead-scraper/steps/list-leads/step"),
-    stepFunction: "listLeadsStep",
-  },
-  "lead-scraper:get-lead-stats": {
-    importer: () =>
-      import("@/extensions/plugins/lead-scraper/steps/get-lead-stats/step"),
-    stepFunction: "getLeadStatsStep",
-  },
-  "lead-scraper:download-results": {
-    importer: () =>
-      import("@/extensions/plugins/lead-scraper/steps/download-results/step"),
-    stepFunction: "downloadResultsStep",
-  },
-  "mongodb:find-documents": {
-    importer: () =>
-      import("@/extensions/plugins/mongodb/steps/find-documents/step"),
-    stepFunction: "findDocumentsStep",
-  },
-  "redis:get-value": {
-    importer: () => import("@/extensions/plugins/redis/steps/get-value/step"),
-    stepFunction: "getValueStep",
+  "Send Message": {
+    importer: () => import("@/plugins/v0/steps/send-message"),
+    stepFunction: "sendMessageStep",
   },
 };
 
@@ -125,35 +124,28 @@ export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
  * Used for displaying friendly names in the UI (e.g., Runs tab)
  */
 export const ACTION_LABELS: Record<string, string> = {
-  "ai-gateway:generate-text": "Generate Text",
-  "ai-gateway:generate-image": "Generate Image",
-  "firecrawl:scrape": "Scrape URL",
-  "firecrawl:search": "Search Web",
-  "linear:create-ticket": "Create Ticket",
-  "linear:find-issues": "Find Issues",
-  "resend:send-email": "Send Email",
-  "slack:send-message": "Send Slack Message",
-  "v0:create-chat": "Create Chat",
-  "v0:send-message": "Send Message",
-  "aws:s3-upload": "S3 Upload",
-  "aws:lambda-invoke": "Lambda Invoke",
-  "azure:blob-upload": "Blob Upload",
-  "gcp:cloud-storage-upload": "Cloud Storage Upload",
-  "lead-scraper:create-scraping-job": "Create Scraping Job",
-  "lead-scraper:get-scraping-job": "Get Scraping Job",
-  "lead-scraper:list-leads": "List Leads",
-  "lead-scraper:get-lead-stats": "Get Lead Stats",
-  "lead-scraper:download-results": "Download Results",
-  "mongodb:find-documents": "Find Documents",
-  "redis:get-value": "Get Value",
-  "Send Email": "Send Email",
-  "Send Slack Message": "Send Slack Message",
-  "Create Linear Ticket": "Create Ticket",
-  "Scrape Website": "Scrape URL",
-  "Search Web": "Search Web",
+  "ai-gateway/generate-text": "Generate Text",
+  "ai-gateway/generate-image": "Generate Image",
+  "firecrawl/scrape": "Scrape URL",
+  "firecrawl/search": "Search Web",
+  "linear/create-ticket": "Create Ticket",
+  "linear/find-issues": "Find Issues",
+  "resend/send-email": "Send Email",
+  "slack/send-message": "Send Slack Message",
+  "superagent/guard": "Guard",
+  "superagent/redact": "Redact",
+  "v0/create-chat": "Create Chat",
+  "v0/send-message": "Send Message",
+  Scrape: "Scrape URL",
+  Search: "Search Web",
   "Generate Text": "Generate Text",
   "Generate Image": "Generate Image",
-  "Generate with v0": "Generate with v0",
+  "Send Email": "Send Email",
+  "Create Ticket": "Create Ticket",
+  "Find Issues": "Find Issues",
+  "Send Slack Message": "Send Slack Message",
+  "Create Chat": "Create Chat",
+  "Send Message": "Send Message",
 };
 
 /**
