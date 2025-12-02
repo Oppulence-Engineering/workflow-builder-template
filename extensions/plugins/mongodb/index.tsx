@@ -1,12 +1,12 @@
 import { Database } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
+import type { ExtensionIntegrationPlugin } from "@/extensions/registry";
+import { registerExtensionPlugin } from "@/extensions/registry";
 import { findDocumentsCodegenTemplate } from "./codegen/find-documents";
 import { MongoDBSettings } from "./settings";
 import { FindDocumentsConfigFields } from "./steps/find-documents/config";
 
-const mongodbPlugin: IntegrationPlugin = {
-  type: "mongodb" as const,
+const mongodbPlugin: ExtensionIntegrationPlugin = {
+  type: "mongodb",
   label: "MongoDB",
   description: "MongoDB document database",
 
@@ -65,6 +65,6 @@ const mongodbPlugin: IntegrationPlugin = {
   ],
 };
 
-registerIntegration(mongodbPlugin);
+registerExtensionPlugin(mongodbPlugin);
 
 export default mongodbPlugin;

@@ -1,12 +1,12 @@
 import { Cloud } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
+import type { ExtensionIntegrationPlugin } from "@/extensions/registry";
+import { registerExtensionPlugin } from "@/extensions/registry";
 import { blobUploadCodegenTemplate } from "./codegen/blob-upload";
 import { AzureSettings } from "./settings";
 import { BlobUploadConfigFields } from "./steps/blob-upload/config";
 
-const azurePlugin: IntegrationPlugin = {
-  type: "azure" as const,
+const azurePlugin: ExtensionIntegrationPlugin = {
+  type: "azure",
   label: "Azure",
   description: "Microsoft Azure cloud services",
 
@@ -69,6 +69,6 @@ const azurePlugin: IntegrationPlugin = {
   ],
 };
 
-registerIntegration(azurePlugin);
+registerExtensionPlugin(azurePlugin);
 
 export default azurePlugin;

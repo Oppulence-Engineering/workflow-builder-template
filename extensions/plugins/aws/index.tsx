@@ -1,14 +1,14 @@
 import { Cloud } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
+import type { ExtensionIntegrationPlugin } from "@/extensions/registry";
+import { registerExtensionPlugin } from "@/extensions/registry";
 import { lambdaInvokeCodegenTemplate } from "./codegen/lambda-invoke";
 import { s3UploadCodegenTemplate } from "./codegen/s3-upload";
 import { AWSSettings } from "./settings";
 import { InvokeLambdaConfigFields } from "./steps/lambda-invoke/config";
 import { InvokeS3ConfigFields } from "./steps/s3-upload/config";
 
-const awsPlugin: IntegrationPlugin = {
-  type: "aws" as const,
+const awsPlugin: ExtensionIntegrationPlugin = {
+  type: "aws",
   label: "AWS",
   description: "Amazon Web Services integration",
 
@@ -93,6 +93,6 @@ const awsPlugin: IntegrationPlugin = {
 };
 
 // Auto-register on import
-registerIntegration(awsPlugin);
+registerExtensionPlugin(awsPlugin);
 
 export default awsPlugin;

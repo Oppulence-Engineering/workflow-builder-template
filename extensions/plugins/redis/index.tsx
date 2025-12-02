@@ -1,12 +1,12 @@
 import { Database } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
+import type { ExtensionIntegrationPlugin } from "@/extensions/registry";
+import { registerExtensionPlugin } from "@/extensions/registry";
 import { getValueCodegenTemplate } from "./codegen/get-value";
 import { RedisSettings } from "./settings";
 import { GetValueConfigFields } from "./steps/get-value/config";
 
-const redisPlugin: IntegrationPlugin = {
-  type: "redis" as const,
+const redisPlugin: ExtensionIntegrationPlugin = {
+  type: "redis",
   label: "Redis",
   description: "Redis cache and key-value store",
 
@@ -56,6 +56,6 @@ const redisPlugin: IntegrationPlugin = {
 };
 
 // Auto-register on import
-registerIntegration(redisPlugin);
+registerExtensionPlugin(redisPlugin);
 
 export default redisPlugin;

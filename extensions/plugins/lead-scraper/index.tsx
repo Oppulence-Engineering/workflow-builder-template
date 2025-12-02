@@ -1,6 +1,6 @@
 import { BarChart3, Download, Eye, Play, Search } from "lucide-react";
-import type { IntegrationPlugin } from "@/plugins/registry";
-import { registerIntegration } from "@/plugins/registry";
+import type { ExtensionIntegrationPlugin } from "@/extensions/registry";
+import { registerExtensionPlugin } from "@/extensions/registry";
 import { createScrapingJobCodegenTemplate } from "./codegen/create-scraping-job";
 import { downloadResultsCodegenTemplate } from "./codegen/download-results";
 import { getLeadStatsCodegenTemplate } from "./codegen/get-lead-stats";
@@ -13,8 +13,8 @@ import { GetLeadStatsConfigFields } from "./steps/get-lead-stats/config";
 import { GetScrapingJobConfigFields } from "./steps/get-scraping-job/config";
 import { ListLeadsConfigFields } from "./steps/list-leads/config";
 
-const leadScraperPlugin: IntegrationPlugin = {
-  type: "lead-scraper" as const,
+const leadScraperPlugin: ExtensionIntegrationPlugin = {
+  type: "lead-scraper",
   label: "Lead Scraper",
   description: "Lead scraping and search integration",
 
@@ -163,6 +163,6 @@ const leadScraperPlugin: IntegrationPlugin = {
 };
 
 // Auto-register on import
-registerIntegration(leadScraperPlugin);
+registerExtensionPlugin(leadScraperPlugin);
 
 export default leadScraperPlugin;
