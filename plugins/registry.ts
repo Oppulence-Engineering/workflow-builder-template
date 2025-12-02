@@ -83,13 +83,44 @@ export type ActionConfigFieldGroup = {
 export type ActionConfigField = ActionConfigFieldBase | ActionConfigFieldGroup;
 
 /**
+ * Config Props for component-based config fields
+ * Used by extension plugins that provide a React component instead of declarative fields
+ */
+export type ConfigProps = {
+  config: Record<string, unknown>;
+  onUpdateConfig: (key: string, value: unknown) => void;
+  disabled?: boolean;
+};
+
+/**
+ * Action Config Fields
+ * Can be either a declarative array of fields OR a React component (for extension plugins)
+ */
+export type ActionConfigFields =
+  | ActionConfigField[]
+  | React.ComponentType<ConfigProps>;
+
+/**
+ * Output Field Definition
+ * Describes an output field available for template autocomplete
+ */
+export type OutputField = {
+  field: string;
+  description: string;
+};
+
+/**
  * Action Definition
  * Describes a single action provided by a plugin
  */
 export type PluginAction = {
   // Unique slug for this action (e.g., "send-email")
   // Full action ID will be computed as `{integration}/{slug}` (e.g., "resend/send-email")
-  slug: string;
+  // For extension plugins, `id` can be used instead
+  slug?: string;
+
+  // Alternative to slug - for extension plugins that use id directly
+  id?: string;
 
   // Human-readable label (e.g., "Send Email")
   label: string;
@@ -100,12 +131,18 @@ export type PluginAction = {
   // Category for grouping in UI
   category: string;
 
+  // Optional per-action icon (for extension plugins)
+  icon?: React.ComponentType<{ className?: string }>;
+
   // Step configuration
   stepFunction: string; // Name of the exported function in the step file
   stepImportPath: string; // Path to import from, relative to plugins/[plugin-name]/steps/
 
-  // Config fields for the action (declarative definition)
-  configFields: ActionConfigField[];
+  // Config fields for the action (declarative definition or React component)
+  configFields: ActionConfigFields;
+
+  // Output fields for template autocomplete (what this action returns)
+  outputFields?: OutputField[];
 
   // Code generation template (the actual template string, not a path)
   // Optional - if not provided, will fall back to auto-generated template
@@ -153,6 +190,16 @@ export type IntegrationPlugin = {
   // to reduce supply chain attack surface. Only use for codegen if absolutely necessary.
   dependencies?: Record<string, string>;
 
+  // Optional settings component for extension plugins
+  // biome-ignore lint/suspicious/noExplicitAny: Flexible settings component props for extensions
+  settingsComponent?: React.ComponentType<any>;
+
+  // Optional credential mapping function for extension plugins
+  // Maps plugin config to credential environment variables
+  credentialMapping?: (
+    config: Record<string, unknown>
+  ) => Record<string, string>;
+
   // Actions provided by this integration
   actions: PluginAction[];
 };
@@ -171,6 +218,13 @@ export type ActionWithFullId = PluginAction & {
  * Auto-populated by plugin files
  */
 const integrationRegistry = new Map<IntegrationType, IntegrationPlugin>();
+
+/**
+ * Get action slug from a PluginAction (supports both slug and id)
+ */
+export function getActionSlug(action: PluginAction): string {
+  return action.slug || action.id || action.label;
+}
 
 /**
  * Compute full action ID from integration type and action slug
@@ -239,7 +293,7 @@ export function getAllActions(): ActionWithFullId[] {
     for (const action of plugin.actions) {
       actions.push({
         ...action,
-        id: computeActionId(plugin.type, action.slug),
+        id: computeActionId(plugin.type, getActionSlug(action)),
         integration: plugin.type,
       });
     }
@@ -261,7 +315,7 @@ export function getActionsByCategory(): Record<string, ActionWithFullId[]> {
       }
       categories[action.category].push({
         ...action,
-        id: computeActionId(plugin.type, action.slug),
+        id: computeActionId(plugin.type, getActionSlug(action)),
         integration: plugin.type,
       });
     }
@@ -310,7 +364,7 @@ export function findActionById(
     if (action) {
       return {
         ...action,
-        id: computeActionId(plugin.type, action.slug),
+        id: computeActionId(plugin.type, getActionSlug(action)),
         integration: plugin.type,
       };
     }
@@ -470,12 +524,18 @@ export function generateAIActionPrompts(): string {
 
   for (const plugin of integrationRegistry.values()) {
     for (const action of plugin.actions) {
-      const fullId = computeActionId(plugin.type, action.slug);
+      const fullId = computeActionId(plugin.type, getActionSlug(action));
 
       // Build example config from configFields (flatten groups)
       const exampleConfig: Record<string, string | number> = {
         actionType: fullId,
       };
+
+      // Skip component-based configFields for AI prompt generation
+      if (!Array.isArray(action.configFields)) {
+        lines.push(`- ${action.label} (${fullId}): ${JSON.stringify(exampleConfig)}`);
+        continue;
+      }
 
       const flatFields = flattenConfigFields(action.configFields);
 

@@ -194,6 +194,34 @@ function extractAllTemplateReferences(
   return results;
 }
 
+// Helper to process broken references for a single node
+function processNodeBrokenRefs(
+  node: WorkflowNode,
+  brokenRefs: ReturnType<typeof extractAllTemplateReferences>,
+  config: Record<string, unknown>
+): BrokenTemplateReferenceInfo {
+  const actionType = config.actionType as string | undefined;
+  const action = actionType ? findActionById(actionType) : undefined;
+  const flatFields =
+    action && Array.isArray(action.configFields)
+      ? flattenConfigFields(action.configFields)
+      : [];
+
+  return {
+    nodeId: node.id,
+    nodeLabel: node.data.label || action?.label || "Unnamed Step",
+    brokenReferences: brokenRefs.map((ref) => {
+      const configField = flatFields.find((f) => f.key === ref.field);
+      return {
+        fieldKey: ref.field,
+        fieldLabel: configField?.label || ref.field,
+        referencedNodeId: ref.nodeId,
+        displayText: ref.displayText,
+      };
+    }),
+  };
+}
+
 // Get broken template references for workflow nodes
 function getBrokenTemplateReferences(
   nodes: WorkflowNode[]
@@ -202,7 +230,6 @@ function getBrokenTemplateReferences(
   const brokenByNode: BrokenTemplateReferenceInfo[] = [];
 
   for (const node of nodes) {
-    // Skip disabled nodes
     if (node.data.enabled === false) {
       continue;
     }
@@ -216,25 +243,7 @@ function getBrokenTemplateReferences(
     const brokenRefs = allRefs.filter((ref) => !nodeIds.has(ref.nodeId));
 
     if (brokenRefs.length > 0) {
-      // Get action for label lookups
-      const actionType = config.actionType as string | undefined;
-      const action = actionType ? findActionById(actionType) : undefined;
-      const flatFields = action ? flattenConfigFields(action.configFields) : [];
-
-      brokenByNode.push({
-        nodeId: node.id,
-        nodeLabel: node.data.label || action?.label || "Unnamed Step",
-        brokenReferences: brokenRefs.map((ref) => {
-          // Look up human-readable field label
-          const configField = flatFields.find((f) => f.key === ref.field);
-          return {
-            fieldKey: ref.field,
-            fieldLabel: configField?.label || ref.field,
-            referencedNodeId: ref.nodeId,
-            displayText: ref.displayText,
-          };
-        }),
-      });
+      brokenByNode.push(processNodeBrokenRefs(node, brokenRefs, config));
     }
   }
 
@@ -293,6 +302,10 @@ function getNodeMissingFields(
   }
 
   // Flatten grouped fields to check all required fields
+  // Skip if configFields is a component (extension plugins)
+  if (!Array.isArray(action.configFields)) {
+    return null;
+  }
   const flatFields = flattenConfigFields(action.configFields);
 
   const missingFields = flatFields
