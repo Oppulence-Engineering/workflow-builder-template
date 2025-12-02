@@ -1,5 +1,4 @@
 import { LinearClient } from "@linear/sdk";
-import FirecrawlApp from "@mendable/firecrawl-js";
 import { WebClient } from "@slack/web-api";
 import { createGateway } from "ai";
 import { NextResponse } from "next/server";
@@ -258,15 +257,20 @@ async function testFirecrawlConnection(
       };
     }
 
-    const app = new FirecrawlApp({ apiKey });
-    const result = await app.scrape("https://firecrawl.dev", {
-      formats: ["markdown"],
+    // Use a lightweight endpoint to validate auth without performing a billable scrape
+    const response = await fetch("https://api.firecrawl.dev/v1/crawl", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
     });
 
-    if (!result) {
+    // 401/403 = invalid key, other errors may indicate the endpoint changed
+    // but successful auth validation is what we need
+    if (response.status === 401 || response.status === 403) {
       return {
         status: "error",
-        message: "Authentication or scrape failed",
+        message: "Authentication failed - invalid API key",
       };
     }
 
