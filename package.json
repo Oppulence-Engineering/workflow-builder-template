@@ -1,6 +1,6 @@
 {
   "name": "ai-workflow-builder-template",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "license": "Apache-2.0",
   "description": "A template for building your own AI-driven workflow automation platform",
