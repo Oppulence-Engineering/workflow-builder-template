@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.2...v1.2.3) (2025-12-02)
+
+
+### Bug Fixes
+
+* use lightweight Firecrawl endpoint for connection test ([10104d4](https://github.com/Oppulence-Engineering/workflow-builder-template/commit/10104d4689e06f2803406cf729c0f698a4383e7d))
+
 ## [1.2.2](https://github.com/Oppulence-Engineering/workflow-builder-template/compare/v1.2.1...v1.2.2) (2025-11-30)
 
 
