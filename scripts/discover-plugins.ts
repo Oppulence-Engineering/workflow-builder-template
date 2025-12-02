@@ -55,7 +55,6 @@ const LEADING_WHITESPACE_PATTERN = /^\s*/;
  */
 async function formatCode(code: string): Promise<string> {
   try {
-    // @ts-expect-error - prettier doesn't have type declarations in dev deps
     const prettier = await import("prettier");
     return await prettier.format(code, { parser: "typescript" });
   } catch (error) {

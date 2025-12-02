@@ -49,7 +49,8 @@ const DEPENDENCIES_PROP_REGEX =
 const INTEGRATION_REGISTRY_REGEX = /const integrationRegistry = new Map/;
 const FLATTEN_CONFIG_FIELDS_REGEX =
   /const flatFields = flattenConfigFields\(action\.configFields\);(\s+for \(const field of flatFields\))/;
-const PRETTIER_IMPORT_REGEX = /const prettier = await import\("prettier"\);/;
+const PRETTIER_CLEANUP_REGEX =
+  /\/\/ @ts-expect-error[^\n]*\n\s*const prettier = await import\("prettier"\);/;
 
 /**
  * Patch discover-plugins.ts to include extension types
@@ -269,27 +270,27 @@ const integrationRegistry = new Map`
 }
 
 /**
- * Add @ts-expect-error for prettier import in discover-plugins.ts
+ * Remove @ts-expect-error for prettier import if prettier is installed
+ * (prettier is now a dev dependency with types)
  */
-function patchPrettierImport(): boolean {
-  console.log("Patching prettier import...");
+function cleanupPrettierImport(): boolean {
+  console.log("Checking prettier import...");
 
   let content = readFileSync(DISCOVER_PLUGINS_PATH, "utf-8");
 
-  if (content.includes("@ts-expect-error")) {
-    console.log("  ✓ Already patched");
-    return false;
+  // If there's a stale @ts-expect-error, remove it
+  if (content.includes("@ts-expect-error") && content.includes("prettier")) {
+    content = content.replace(
+      PRETTIER_CLEANUP_REGEX,
+      'const prettier = await import("prettier");'
+    );
+    writeFileSync(DISCOVER_PLUGINS_PATH, content);
+    console.log("  ✓ Cleaned up stale @ts-expect-error");
+    return true;
   }
 
-  content = content.replace(
-    PRETTIER_IMPORT_REGEX,
-    `// @ts-expect-error - prettier doesn't have type declarations in dev deps
-    const prettier = await import("prettier");`
-  );
-
-  writeFileSync(DISCOVER_PLUGINS_PATH, content);
-  console.log("  ✓ Patched successfully");
-  return true;
+  console.log("  ✓ No cleanup needed");
+  return false;
 }
 
 /**
@@ -319,7 +320,7 @@ function main(): void {
 
   needsRegeneration = patchDiscoverPlugins() || needsRegeneration;
   needsRegeneration = patchRegistry() || needsRegeneration;
-  patchPrettierImport();
+  cleanupPrettierImport();
 
   if (needsRegeneration) {
     runDiscoverPlugins();
