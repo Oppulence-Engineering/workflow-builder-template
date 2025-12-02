@@ -72,9 +72,14 @@ async function stepHandler(
 
     const data = await response.json();
     const choice = data.choices?.[0];
+    const redactedContent = choice?.message?.content;
+
+    if (typeof redactedContent !== "string") {
+      throw new Error("Invalid Redact API response: missing redacted content");
+    }
 
     return {
-      redactedText: choice?.message?.content || input.text,
+      redactedText: redactedContent,
       reasoning: choice?.message?.reasoning,
     };
   } catch (error) {

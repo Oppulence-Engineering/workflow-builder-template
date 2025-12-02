@@ -303,22 +303,20 @@ async function testFirecrawlConnection(
       };
     }
 
-    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
+    // Use a lightweight endpoint to validate auth without performing a billable scrape
+    const response = await fetch("https://api.firecrawl.dev/v1/crawl", {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        url: "https://example.com",
-        formats: ["markdown"],
-      }),
     });
 
-    if (!response.ok) {
+    // 401/403 = invalid key, other errors may indicate the endpoint changed
+    // but successful auth validation is what we need
+    if (response.status === 401 || response.status === 403) {
       return {
         status: "error",
-        message: "Authentication or scrape failed",
+        message: "Authentication failed - invalid API key",
       };
     }
 

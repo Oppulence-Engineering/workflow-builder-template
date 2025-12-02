@@ -92,10 +92,18 @@ async function stepHandler(
     });
 
     if (!response.ok) {
-      const errorData = (await response.json()) as ResendErrorResponse;
+      let errorMessage = `HTTP ${response.status}: Failed to send email`;
+      try {
+        const errorData = (await response.json()) as ResendErrorResponse;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        // Response body is not valid JSON, use default error message
+      }
       return {
         success: false,
-        error: errorData.message || `HTTP ${response.status}: Failed to send email`,
+        error: errorMessage,
       };
     }
 
