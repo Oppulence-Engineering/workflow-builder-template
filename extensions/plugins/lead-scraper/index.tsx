@@ -1,18 +1,17 @@
 import { BarChart3, Download, Eye, Play, Search } from "lucide-react";
-
-import { CreateScrapingJobConfigFields } from "./steps/create-scraping-job/config";
-import { DownloadResultsConfigFields } from "./steps/download-results/config";
-import { GetLeadStatsConfigFields } from "./steps/get-lead-stats/config";
-import { GetScrapingJobConfigFields } from "./steps/get-scraping-job/config";
 import type { IntegrationPlugin } from "@/plugins/registry";
-import { LeadScraperSettings } from "./settings";
-import { ListLeadsConfigFields } from "./steps/list-leads/config";
+import { registerIntegration } from "@/plugins/registry";
 import { createScrapingJobCodegenTemplate } from "./codegen/create-scraping-job";
 import { downloadResultsCodegenTemplate } from "./codegen/download-results";
 import { getLeadStatsCodegenTemplate } from "./codegen/get-lead-stats";
 import { getScrapingJobCodegenTemplate } from "./codegen/get-scraping-job";
 import { listLeadsCodegenTemplate } from "./codegen/list-leads";
-import { registerIntegration } from "@/plugins/registry";
+import { LeadScraperSettings } from "./settings";
+import { CreateScrapingJobConfigFields } from "./steps/create-scraping-job/config";
+import { DownloadResultsConfigFields } from "./steps/download-results/config";
+import { GetLeadStatsConfigFields } from "./steps/get-lead-stats/config";
+import { GetScrapingJobConfigFields } from "./steps/get-scraping-job/config";
+import { ListLeadsConfigFields } from "./steps/list-leads/config";
 
 const leadScraperPlugin: IntegrationPlugin = {
   type: "lead-scraper" as const,

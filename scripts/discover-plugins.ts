@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Plugin Auto-Discovery Script
  *
@@ -11,15 +12,15 @@
  * - Automatically: Before build (in package.json)
  */
 
-import { dirname, join } from "node:path";
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   statSync,
   writeFileSync,
 } from "node:fs";
+import { dirname, join } from "node:path";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
 const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
@@ -207,7 +208,7 @@ async function updateReadme(): Promise<void> {
   const integrations = getAllIntegrations();
 
   if (integrations.length === 0) {
-    console.log("⚠️  No integrations found, skipping README update");
+    console.log("No integrations found, skipping README update");
     return;
   }
 
@@ -224,7 +225,7 @@ async function updateReadme(): Promise<void> {
 
   // Check if markers exist
   if (!readme.includes("<!-- PLUGINS:START")) {
-    console.log("⚠️  README markers not found, skipping README update");
+    console.log("README markers not found, skipping README update");
     return;
   }
 
@@ -235,9 +236,7 @@ async function updateReadme(): Promise<void> {
   );
 
   writeFileSync(README_FILE, updated, "utf-8");
-  console.log(
-    `📝 Updated README.md with ${integrations.length} integration(s)`
-  );
+  console.log(`Updated README.md with ${integrations.length} integration(s)`);
 }
 
 /**
@@ -284,7 +283,7 @@ export type IntegrationConfig = Record<string, string | undefined>;
 
   writeFileSync(TYPES_FILE, content, "utf-8");
   console.log(
-    `📝 Generated lib/types/integration.ts with ${allTypes.length} type(s)`
+    `Generated lib/types/integration.ts with ${allTypes.length} type(s)`
   );
 }
 
@@ -439,7 +438,7 @@ export function getActionLabel(actionType: string): string | undefined {
 
   writeFileSync(STEP_REGISTRY_FILE, content, "utf-8");
   console.log(
-    `📝 Generated lib/step-registry.ts with ${stepEntries.length} step(s)`
+    `Generated lib/step-registry.ts with ${stepEntries.length} step(s)`
   );
 }
 
@@ -447,13 +446,13 @@ export function getActionLabel(actionType: string): string | undefined {
  * Main execution
  */
 async function main(): Promise<void> {
-  console.log("🔍 Discovering plugins...");
+  console.log("Discovering plugins...");
 
   const plugins = discoverPlugins();
   const extensionPlugins = discoverExtensionPlugins();
 
   if (plugins.length === 0) {
-    console.log("⚠️  No plugins found in plugins/ directory");
+    console.log("No plugins found in plugins/ directory");
   } else {
     console.log(`✅ Found ${plugins.length} core plugin(s):`);
     for (const plugin of plugins) {
@@ -473,19 +472,19 @@ async function main(): Promise<void> {
   console.log("\n📝 Generating plugins/index.ts...");
   generateIndexFile(plugins, extensionPlugins);
 
-  console.log("📚 Updating README.md...");
+  console.log("Updating README.md...");
   await updateReadme();
 
-  console.log("🔧 Generating lib/types/integration.ts...");
+  console.log("Generating lib/types/integration.ts...");
   await generateTypesFile();
 
   console.log("🔧 Generating lib/step-registry.ts...");
   await generateStepRegistry(extensionPlugins);
 
-  console.log("✨ Done! Plugin registry updated.\n");
+  console.log("Done! Plugin registry updated.\n");
 }
 
 main().catch((error) => {
-  console.error("❌ Error:", error);
+  console.error("Error:", error);
   process.exit(1);
 });

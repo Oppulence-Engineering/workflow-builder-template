@@ -8,7 +8,7 @@
     "dev": "pnpm discover-plugins && next dev",
     "build": "pnpm discover-plugins && next build",
     "start": "next start",
-    "type-check": "tsc --noEmit",
+    "type-check": "node scripts/type-check.mjs",
     "check": "npx ultracite@latest check",
     "fix": "npx ultracite@latest fix",
     "db:generate": "drizzle-kit generate",
@@ -29,7 +29,8 @@
     "helm:upgrade": "helm upgrade workflow-builder k8s/charts/workflow-builder",
     "helm:uninstall": "helm uninstall workflow-builder",
     "discover-plugins": "tsx scripts/discover-plugins.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "create-plugin": "tsx scripts/create-plugin.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.74",
@@ -93,6 +94,7 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.2",
+    "@inquirer/prompts": "^8.0.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/react": "^19",

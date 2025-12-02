@@ -78,31 +78,40 @@ export const PLUGIN_STEP_IMPORTERS: Record<string, StepImporter> = {
     stepFunction: "blobUploadStep",
   },
   "gcp:cloud-storage-upload": {
-    importer: () => import("@/extensions/plugins/gcp/steps/storage-upload/step"),
+    importer: () =>
+      import("@/extensions/plugins/gcp/steps/storage-upload/step"),
     stepFunction: "storageUploadStep",
   },
   "lead-scraper:create-scraping-job": {
-    importer: () => import("@/extensions/plugins/lead-scraper/steps/create-scraping-job/step"),
+    importer: () =>
+      import(
+        "@/extensions/plugins/lead-scraper/steps/create-scraping-job/step"
+      ),
     stepFunction: "createScrapingJobStep",
   },
   "lead-scraper:get-scraping-job": {
-    importer: () => import("@/extensions/plugins/lead-scraper/steps/get-scraping-job/step"),
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/get-scraping-job/step"),
     stepFunction: "getScrapingJobStep",
   },
   "lead-scraper:list-leads": {
-    importer: () => import("@/extensions/plugins/lead-scraper/steps/list-leads/step"),
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/list-leads/step"),
     stepFunction: "listLeadsStep",
   },
   "lead-scraper:get-lead-stats": {
-    importer: () => import("@/extensions/plugins/lead-scraper/steps/get-lead-stats/step"),
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/get-lead-stats/step"),
     stepFunction: "getLeadStatsStep",
   },
   "lead-scraper:download-results": {
-    importer: () => import("@/extensions/plugins/lead-scraper/steps/download-results/step"),
+    importer: () =>
+      import("@/extensions/plugins/lead-scraper/steps/download-results/step"),
     stepFunction: "downloadResultsStep",
   },
   "mongodb:find-documents": {
-    importer: () => import("@/extensions/plugins/mongodb/steps/find-documents/step"),
+    importer: () =>
+      import("@/extensions/plugins/mongodb/steps/find-documents/step"),
     stepFunction: "findDocumentsStep",
   },
   "redis:get-value": {
