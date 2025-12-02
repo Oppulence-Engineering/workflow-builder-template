@@ -29,6 +29,7 @@
     "helm:upgrade": "helm upgrade workflow-builder k8s/charts/workflow-builder",
     "helm:uninstall": "helm uninstall workflow-builder",
     "discover-plugins": "tsx scripts/discover-plugins.ts",
+    "patch-upstream": "tsx scripts/patch-upstream.ts",
     "prepare": "husky",
     "create-plugin": "tsx scripts/create-plugin.ts"
   },
