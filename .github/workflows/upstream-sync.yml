@@ -1,0 +1,53 @@
+name: Upstream Sync to Release Candidate
+
+on:
+  schedule:
+    # Daily at 05:30 UTC
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REPO: vercel-labs/workflow-builder-template
+      BASE_BRANCH: main
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/${UPSTREAM_REPO}.git
+          else
+            git remote add upstream https://github.com/${UPSTREAM_REPO}.git
+          fi
+
+      - name: Fetch upstream main
+        run: git fetch upstream ${BASE_BRANCH}
+
+      - name: Merge upstream into release candidate
+        env:
+          RC_BRANCH: release-candidate-$(date -u +%Y-%m-%d)
+        run: |
+          set -eo pipefail
+          git checkout ${BASE_BRANCH}
+          git merge --no-edit upstream/${BASE_BRANCH}
+          git checkout -B ${RC_BRANCH}
+
+      - name: Push release candidate branch
+        env:
+          RC_BRANCH: release-candidate-$(date -u +%Y-%m-%d)
+        run: git push origin ${RC_BRANCH} --force-with-lease
