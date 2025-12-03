@@ -1,94 +1,80 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import type { WizardStep as WizardStepType } from "@/extensions/components/wizard/wizard-container";
+import { WizardContainer } from "@/extensions/components/wizard/wizard-container";
+import { WizardNavigation } from "@/extensions/components/wizard/wizard-navigation";
+import { WizardProgress } from "@/extensions/components/wizard/wizard-progress";
+import { WizardStep } from "@/extensions/components/wizard/wizard-step";
+import { AccountStep } from "./wizard-steps/account-step";
+import { ConnectStep } from "./wizard-steps/connect-step";
+import { OrgStep } from "./wizard-steps/org-step";
+import { WorkspaceStep } from "./wizard-steps/workspace-step";
 
 type LeadScraperSettingsProps = {
-  config?: Record<string, string>;
-  onConfigChange?: (key: string, value: string) => void;
+  config?: Record<string, unknown>;
+  onConfigChange?: (key: string, value: unknown) => void;
+  disabled?: boolean;
 };
 
+const WIZARD_STEPS: WizardStepType[] = [
+  {
+    id: "connect",
+    title: "Connect",
+    description: "Configure API endpoint and credentials",
+    isValid: false,
+  },
+  {
+    id: "organization",
+    title: "Organization",
+    description: "Select your organization",
+    isValid: false,
+  },
+  {
+    id: "account",
+    title: "Account",
+    description: "Select tenant and account",
+    isValid: false,
+  },
+  {
+    id: "workspace",
+    title: "Workspace",
+    description: "Optionally select a workspace",
+    isValid: true, // Optional step
+  },
+];
+
 export function LeadScraperSettings({
-  config,
+  config = {},
   onConfigChange,
+  disabled,
 }: LeadScraperSettingsProps) {
+  const handleUpdateConfig = (key: string, value: unknown) => {
+    if (!disabled && onConfigChange) {
+      onConfigChange(key, value);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-endpoint">API Endpoint</Label>
-        <Input
-          id="lead-scraper-endpoint"
-          onChange={(e) => onConfigChange?.("apiEndpoint", e.target.value)}
-          placeholder="http://lead-scraper:8080"
-          type="text"
-          value={config?.apiEndpoint || ""}
-        />
-        <p className="text-muted-foreground text-xs">
-          Base URL for the Lead Scraper API
-        </p>
-      </div>
+    <WizardContainer steps={WIZARD_STEPS}>
+      <WizardProgress />
 
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-org-id">Organization ID</Label>
-        <Input
-          id="lead-scraper-org-id"
-          onChange={(e) => onConfigChange?.("organizationId", e.target.value)}
-          placeholder="org-xxx"
-          type="text"
-          value={config?.organizationId || ""}
-        />
-      </div>
+      <WizardStep stepId="connect">
+        <ConnectStep config={config} onUpdateConfig={handleUpdateConfig} />
+      </WizardStep>
 
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-tenant-id">Tenant ID</Label>
-        <Input
-          id="lead-scraper-tenant-id"
-          onChange={(e) => onConfigChange?.("tenantId", e.target.value)}
-          placeholder="tenant-xxx"
-          type="text"
-          value={config?.tenantId || ""}
-        />
-      </div>
+      <WizardStep stepId="organization">
+        <OrgStep config={config} onUpdateConfig={handleUpdateConfig} />
+      </WizardStep>
 
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-account-id">Account ID</Label>
-        <Input
-          id="lead-scraper-account-id"
-          onChange={(e) => onConfigChange?.("accountId", e.target.value)}
-          placeholder="account-xxx"
-          type="text"
-          value={config?.accountId || ""}
-        />
-      </div>
+      <WizardStep stepId="account">
+        <AccountStep config={config} onUpdateConfig={handleUpdateConfig} />
+      </WizardStep>
 
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-workspace-id">
-          Workspace ID (Optional)
-        </Label>
-        <Input
-          id="lead-scraper-workspace-id"
-          onChange={(e) => onConfigChange?.("workspaceId", e.target.value)}
-          placeholder="workspace-xxx"
-          type="text"
-          value={config?.workspaceId || ""}
-        />
-      </div>
+      <WizardStep stepId="workspace">
+        <WorkspaceStep config={config} onUpdateConfig={handleUpdateConfig} />
+      </WizardStep>
 
-      <div className="space-y-2">
-        <Label htmlFor="lead-scraper-api-key">API Key (Optional)</Label>
-        <Input
-          id="lead-scraper-api-key"
-          onChange={(e) => onConfigChange?.("apiKey", e.target.value)}
-          placeholder="Your API key"
-          type="password"
-          value={config?.apiKey || ""}
-        />
-      </div>
-
-      <p className="text-muted-foreground text-xs">
-        Configure your Lead Scraper credentials. These IDs are provided by the
-        lead scraper system administrator.
-      </p>
-    </div>
+      <WizardNavigation submitLabel="Save Configuration" />
+    </WizardContainer>
   );
 }

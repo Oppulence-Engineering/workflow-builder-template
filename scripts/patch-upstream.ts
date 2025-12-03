@@ -13,7 +13,8 @@
  * What it does:
  *   1. Adds extension types to SYSTEM_INTEGRATION_TYPES in discover-plugins.ts
  *   2. Adds extension-compatible types to plugins/registry.ts
- *   3. Regenerates plugin files with pnpm discover-plugins
+ *   3. Patches integration-form-dialog.tsx to support settingsComponent (for wizard-based setup)
+ *   4. Regenerates plugin files with pnpm discover-plugins
  */
 
 import { execSync } from "node:child_process";
@@ -23,6 +24,12 @@ import { join } from "node:path";
 const ROOT_DIR = process.cwd();
 const DISCOVER_PLUGINS_PATH = join(ROOT_DIR, "scripts", "discover-plugins.ts");
 const REGISTRY_PATH = join(ROOT_DIR, "plugins", "registry.ts");
+const INTEGRATION_FORM_DIALOG_PATH = join(
+  ROOT_DIR,
+  "components",
+  "settings",
+  "integration-form-dialog.tsx"
+);
 
 // Extension integration types to add
 const EXTENSION_TYPES = [
@@ -51,6 +58,11 @@ const FLATTEN_CONFIG_FIELDS_REGEX =
   /const flatFields = flattenConfigFields\(action\.configFields\);(\s+for \(const field of flatFields\))/;
 const PRETTIER_CLEANUP_REGEX =
   /\/\/ @ts-expect-error[^\n]*\n\s*const prettier = await import\("prettier"\);/;
+
+// Integration form dialog patching patterns
+const _RENDER_CONFIG_FIELDS_REGEX = /const renderConfigFields = \(\) => \{/;
+const PLUGIN_FORM_FIELDS_CHECK_REGEX =
+  /if \(!plugin\?\.formFields\) \{\s*return null;\s*\}/;
 
 /**
  * Patch discover-plugins.ts to include extension types
@@ -270,6 +282,55 @@ const integrationRegistry = new Map`
 }
 
 /**
+ * Patch integration-form-dialog.tsx to support settingsComponent
+ */
+function patchIntegrationFormDialog(): boolean {
+  console.log("Patching components/settings/integration-form-dialog.tsx...");
+
+  let content = readFileSync(INTEGRATION_FORM_DIALOG_PATH, "utf-8");
+
+  // Check if already patched
+  if (content.includes("settingsComponent")) {
+    console.log("  ✓ Already patched");
+    return false;
+  }
+
+  let patched = false;
+
+  // Add settingsComponent check before formFields rendering
+  if (content.match(PLUGIN_FORM_FIELDS_CHECK_REGEX)) {
+    content = content.replace(
+      PLUGIN_FORM_FIELDS_CHECK_REGEX,
+      `// Support custom settings component (for extension plugins with wizards)
+    if (plugin?.settingsComponent) {
+      const SettingsComponent = plugin.settingsComponent;
+      return (
+        <SettingsComponent
+          config={formData.config}
+          disabled={saving}
+          onConfigChange={updateConfig}
+        />
+      );
+    }
+
+    if (!plugin?.formFields) {
+      return null;
+    }`
+    );
+    patched = true;
+  }
+
+  if (patched) {
+    writeFileSync(INTEGRATION_FORM_DIALOG_PATH, content);
+    console.log("  ✓ Patched successfully");
+  } else {
+    console.log("  ✗ Could not find insertion point for settingsComponent");
+  }
+
+  return patched;
+}
+
+/**
  * Remove @ts-expect-error for prettier import if prettier is installed
  * (prettier is now a dev dependency with types)
  */
@@ -320,6 +381,7 @@ function main(): void {
 
   needsRegeneration = patchDiscoverPlugins() || needsRegeneration;
   needsRegeneration = patchRegistry() || needsRegeneration;
+  patchIntegrationFormDialog();
   cleanupPrettierImport();
 
   if (needsRegeneration) {

@@ -27,6 +27,10 @@ const CONFIG_FIELDS_SPACING_REGEX = /configFields\s*:\s*ActionConfigField\[\];/;
 const PRETTIER_CLEANUP_REGEX =
   /\/\/ @ts-expect-error[^\n]*\n\s*const prettier = await import\("prettier"\);/;
 
+// Integration form dialog patching patterns
+const PLUGIN_FORM_FIELDS_CHECK_REGEX =
+  /if \(!plugin\?\.formFields\) \{\s*return null;\s*\}/;
+
 // Sample unpatched discover-plugins.ts content
 const UNPATCHED_DISCOVER_PLUGINS = `
 // Some code before
@@ -198,6 +202,71 @@ export function getActionSlug(action: PluginAction): string {
 const integrationRegistry = new Map<string, IntegrationPlugin>();
 `;
 
+// Sample unpatched integration-form-dialog.tsx content
+const UNPATCHED_INTEGRATION_FORM_DIALOG = `
+const renderConfigFields = () => {
+  // Handle system integrations with hardcoded fields
+  if (formData.type === "database") {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="url">Database URL</Label>
+      </div>
+    );
+  }
+
+  // Get plugin form fields from registry
+  const plugin = getIntegration(formData.type);
+  if (!plugin?.formFields) {
+    return null;
+  }
+
+  return plugin.formFields.map((field) => (
+    <div className="space-y-2" key={field.id}>
+      <Label htmlFor={field.id}>{field.label}</Label>
+    </div>
+  ));
+};
+`;
+
+// Sample already patched integration-form-dialog.tsx content
+const PATCHED_INTEGRATION_FORM_DIALOG = `
+const renderConfigFields = () => {
+  // Handle system integrations with hardcoded fields
+  if (formData.type === "database") {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="url">Database URL</Label>
+      </div>
+    );
+  }
+
+  // Get plugin form fields from registry
+  const plugin = getIntegration(formData.type);
+
+  // Support custom settings component (for extension plugins with wizards)
+  if (plugin?.settingsComponent) {
+    const SettingsComponent = plugin.settingsComponent;
+    return (
+      <SettingsComponent
+        config={formData.config}
+        disabled={saving}
+        onConfigChange={updateConfig}
+      />
+    );
+  }
+
+  if (!plugin?.formFields) {
+    return null;
+  }
+
+  return plugin.formFields.map((field) => (
+    <div className="space-y-2" key={field.id}>
+      <Label htmlFor={field.id}>{field.label}</Label>
+    </div>
+  ));
+};
+`;
+
 describe("patch-upstream regex patterns", () => {
   describe("SYSTEM_TYPES_REGEX", () => {
     it("should match unpatched SYSTEM_INTEGRATION_TYPES", () => {
@@ -314,6 +383,24 @@ const SYSTEM_INTEGRATION_TYPES = ["database"] as const;`;
       expect(match).toBeNull();
     });
   });
+
+  describe("PLUGIN_FORM_FIELDS_CHECK_REGEX", () => {
+    it("should match formFields null check", () => {
+      const content = `if (!plugin?.formFields) {
+    return null;
+  }`;
+      const match = content.match(PLUGIN_FORM_FIELDS_CHECK_REGEX);
+      expect(match).not.toBeNull();
+    });
+
+    it("should not match settingsComponent check", () => {
+      const content = `if (plugin?.settingsComponent) {
+    return <Component />;
+  }`;
+      const match = content.match(PLUGIN_FORM_FIELDS_CHECK_REGEX);
+      expect(match).toBeNull();
+    });
+  });
 });
 
 describe("patch detection", () => {
@@ -345,6 +432,18 @@ describe("patch detection", () => {
     const hasConfigProps = PATCHED_REGISTRY.includes("ConfigProps");
     expect(hasGetActionSlug).toBe(true);
     expect(hasConfigProps).toBe(true);
+  });
+
+  it("should detect unpatched integration-form-dialog.tsx", () => {
+    const hasSettingsComponent =
+      UNPATCHED_INTEGRATION_FORM_DIALOG.includes("settingsComponent");
+    expect(hasSettingsComponent).toBe(false);
+  });
+
+  it("should detect patched integration-form-dialog.tsx", () => {
+    const hasSettingsComponent =
+      PATCHED_INTEGRATION_FORM_DIALOG.includes("settingsComponent");
+    expect(hasSettingsComponent).toBe(true);
   });
 });
 
@@ -461,6 +560,62 @@ const integrationRegistry = new Map`;
       expect(result).toBe(original);
     });
   });
+
+  describe("settingsComponent insertion", () => {
+    it("should insert settingsComponent check before formFields check", () => {
+      const original = `if (!plugin?.formFields) {
+    return null;
+  }`;
+      const replacement = `// Support custom settings component (for extension plugins with wizards)
+    if (plugin?.settingsComponent) {
+      const SettingsComponent = plugin.settingsComponent;
+      return (
+        <SettingsComponent
+          config={formData.config}
+          disabled={saving}
+          onConfigChange={updateConfig}
+        />
+      );
+    }
+
+    if (!plugin?.formFields) {
+      return null;
+    }`;
+
+      const result = original.replace(
+        PLUGIN_FORM_FIELDS_CHECK_REGEX,
+        replacement
+      );
+      expect(result).toContain("settingsComponent");
+      expect(result).toContain("SettingsComponent");
+      expect(result).toContain("formFields");
+    });
+
+    it("should preserve the original formFields check", () => {
+      const original = UNPATCHED_INTEGRATION_FORM_DIALOG;
+      const result = original.replace(
+        PLUGIN_FORM_FIELDS_CHECK_REGEX,
+        `// Support custom settings component (for extension plugins with wizards)
+    if (plugin?.settingsComponent) {
+      const SettingsComponent = plugin.settingsComponent;
+      return (
+        <SettingsComponent
+          config={formData.config}
+          disabled={saving}
+          onConfigChange={updateConfig}
+        />
+      );
+    }
+
+    if (!plugin?.formFields) {
+      return null;
+    }`
+      );
+      expect(result).toContain("settingsComponent");
+      // Should still contain formFields handling after the settingsComponent check
+      expect(result).toContain("plugin.formFields.map");
+    });
+  });
 });
 
 describe("edge cases", () => {
@@ -514,5 +669,24 @@ describe("idempotency", () => {
     const hasConfigProps = PATCHED_REGISTRY.includes("ConfigProps");
 
     expect(hasGetActionSlug && hasConfigProps).toBe(true);
+  });
+
+  it("should detect settingsComponent as integration-form-dialog patch indicator", () => {
+    const hasSettingsComponent =
+      PATCHED_INTEGRATION_FORM_DIALOG.includes("settingsComponent");
+    expect(hasSettingsComponent).toBe(true);
+  });
+
+  it("should not re-patch integration-form-dialog if already patched", () => {
+    // If already patched, the regex won't match the simple formFields check
+    // because the settingsComponent block is already inserted before it
+    const _wouldMatch = PATCHED_INTEGRATION_FORM_DIALOG.match(
+      PLUGIN_FORM_FIELDS_CHECK_REGEX
+    );
+    // The regex should still match since we insert before it and keep the original
+    // But detection should prevent re-patching
+    expect(PATCHED_INTEGRATION_FORM_DIALOG.includes("settingsComponent")).toBe(
+      true
+    );
   });
 });

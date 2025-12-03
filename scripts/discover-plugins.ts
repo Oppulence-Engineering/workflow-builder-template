@@ -27,6 +27,7 @@ import { dirname, join } from "node:path";
 import ts from "typescript";
 
 const PLUGINS_DIR = join(process.cwd(), "plugins");
+const EXTENSIONS_PLUGINS_DIR = join(process.cwd(), "extensions", "plugins");
 const OUTPUT_FILE = join(PLUGINS_DIR, "index.ts");
 const TYPES_FILE = join(process.cwd(), "lib", "types", "integration.ts");
 const STEP_REGISTRY_FILE = join(process.cwd(), "lib", "step-registry.ts");
@@ -99,10 +100,70 @@ function discoverPlugins(): string[] {
 }
 
 /**
+ * Resolve where a plugin's files live (core plugins vs extensions)
+ */
+function getIntegrationSourceDir(
+  integration: string
+): { baseDir: string; importPrefix: string } | null {
+  const pluginDir = join(PLUGINS_DIR, integration);
+  if (existsSync(pluginDir)) {
+    return { baseDir: pluginDir, importPrefix: "@/plugins" };
+  }
+
+  const extensionDir = join(EXTENSIONS_PLUGINS_DIR, integration);
+  if (existsSync(extensionDir)) {
+    return { baseDir: extensionDir, importPrefix: "@/extensions/plugins" };
+  }
+
+  return null;
+}
+
+/**
+ * Resolve both the runtime import path (for bundler) and the actual file path
+ * for a step module. Supports flat files (steps/foo.ts) and nested step files
+ * (steps/foo/step.ts) used by extensions.
+ */
+function resolveStepPaths(
+  integration: string,
+  stepImportPath: string
+): { importPath: string; filePath: string } {
+  const source = getIntegrationSourceDir(integration);
+  const baseDir = source?.baseDir ?? join(PLUGINS_DIR, integration);
+  const importPrefix = source?.importPrefix ?? "@/plugins";
+
+  const flatStepFile = join(baseDir, "steps", `${stepImportPath}.ts`);
+  const nestedStepFile = join(baseDir, "steps", stepImportPath, "step.ts");
+
+  if (existsSync(flatStepFile)) {
+    return {
+      importPath: `${importPrefix}/${integration}/steps/${stepImportPath}`,
+      filePath: flatStepFile,
+    };
+  }
+
+  if (existsSync(nestedStepFile)) {
+    return {
+      importPath: `${importPrefix}/${integration}/steps/${stepImportPath}/step`,
+      filePath: nestedStepFile,
+    };
+  }
+
+  return {
+    importPath: `${importPrefix}/${integration}/steps/${stepImportPath}`,
+    filePath: flatStepFile,
+  };
+}
+
+/**
  * Generate the plugins/index.ts file
  */
 function generateIndexFile(plugins: string[]): void {
-  const imports = plugins.map((plugin) => `import "./${plugin}";`).join("\n");
+  const pluginImports = plugins
+    .map((plugin) => `import "./${plugin}";`)
+    .join("\n");
+  const imports = ['import "@/extensions";', pluginImports]
+    .filter(Boolean)
+    .join("\n");
 
   const content = `/**
  * Plugins Index (Auto-Generated)
@@ -219,7 +280,9 @@ async function generateTypesFile(): Promise<void> {
   const pluginTypes = getIntegrationTypes();
 
   // Combine plugin types with system types
-  const allTypes = [...pluginTypes, ...SYSTEM_INTEGRATION_TYPES].sort();
+  const allTypes = Array.from(
+    new Set([...pluginTypes, ...SYSTEM_INTEGRATION_TYPES])
+  ).sort();
 
   // Generate the union type
   const unionType = allTypes.map((t) => `  | "${t}"`).join("\n");
@@ -510,11 +573,9 @@ async function processStepFilesForCodegen(): Promise<void> {
 
   for (const integration of integrations) {
     for (const action of integration.actions) {
-      const stepFilePath = join(
-        PLUGINS_DIR,
+      const { filePath: stepFilePath } = resolveStepPaths(
         integration.type,
-        "steps",
-        `${action.stepImportPath}.ts`
+        action.stepImportPath
       );
 
       const template = await generateCodegenTemplate(
@@ -649,9 +710,10 @@ async function generateStepRegistry(): Promise<void> {
   // Include both namespaced IDs and legacy label-based IDs for backward compatibility
   const importerEntries = stepEntries
     .flatMap(({ actionId, integration, stepImportPath, stepFunction }) => {
+      const { importPath } = resolveStepPaths(integration, stepImportPath);
       const entries = [
         `  "${actionId}": {
-    importer: () => import("@/plugins/${integration}/steps/${stepImportPath}"),
+    importer: () => import("${importPath}"),
     stepFunction: "${stepFunction}",
   },`,
       ];
@@ -660,7 +722,7 @@ async function generateStepRegistry(): Promise<void> {
       for (const legacyLabel of legacyLabels) {
         entries.push(
           `  "${legacyLabel}": {
-    importer: () => import("@/plugins/${integration}/steps/${stepImportPath}"),
+    importer: () => import("${importPath}"),
     stepFunction: "${stepFunction}",
   },`
         );

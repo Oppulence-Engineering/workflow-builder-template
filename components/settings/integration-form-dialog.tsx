@@ -155,6 +155,18 @@ export function IntegrationFormDialog({
 
     // Get plugin form fields from registry
     const plugin = getIntegration(formData.type);
+    // Support custom settings component (for extension plugins with wizards)
+    if (plugin?.settingsComponent) {
+      const SettingsComponent = plugin.settingsComponent;
+      return (
+        <SettingsComponent
+          config={formData.config}
+          disabled={saving}
+          onConfigChange={updateConfig}
+        />
+      );
+    }
+
     if (!plugin?.formFields) {
       return null;
     }
